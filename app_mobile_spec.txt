@@ -1,0 +1,64 @@
+# Ứng dụng Di Động Đặt Vé Xem Phim Trực Tuyến
+
+## Tổng Quan
+
+Ứng dụng Di động Đặt Vé Xem Phim Trực Tuyến cho phép khách hàng dễ dàng tra cứu thông tin phim, xem lịch chiếu, lựa chọn ghế ngồi, mua vé và quản lý các đơn đặt vé trực tiếp trên thiết bị di động của mình. Ứng dụng hướng tới việc mang lại trải nghiệm đặt vé nhanh chóng, an toàn và thân thiện với người dùng mà không cần phải đến quầy bán vé tại rạp.
+
+## Các Chức Năng Chính
+
+### 1. Quản Lý Tài Khoản Người Dùng
+
+* Đăng ký và đăng nhập bằng email, số điện thoại hoặc tài khoản mạng xã hội.
+* Khôi phục và đặt lại mật khẩu.
+* Quản lý thông tin hồ sơ cá nhân.
+* Xem lịch sử đặt vé và các vé đã mua.
+
+### 2. Tra Cứu Thông Tin Phim
+
+* Hiển thị danh sách phim đang chiếu và sắp chiếu.
+* Xem thông tin chi tiết của phim bao gồm nội dung, diễn viên, thể loại, thời lượng, phân loại độ tuổi, trailer và ngày khởi chiếu.
+* Tìm kiếm và lọc phim theo tên phim, thể loại, rạp chiếu hoặc ngày chiếu.
+
+### 3. Lựa Chọn Rạp Chiếu Và Suất Chiếu
+
+* Xem danh sách các rạp chiếu và địa điểm hoạt động.
+* Xem lịch chiếu theo rạp và theo ngày.
+* Hiển thị các suất chiếu khả dụng cho bộ phim được chọn.
+
+### 4. Lựa Chọn Ghế Ngồi
+
+* Hiển thị sơ đồ ghế tương tác với các trạng thái ghế còn trống, đã đặt hoặc không khả dụng.
+* Hỗ trợ lựa chọn một hoặc nhiều ghế cùng lúc.
+* Cập nhật tình trạng ghế theo thời gian thực.
+
+### 5. Đặt Vé Và Thanh Toán
+
+* Xem lại thông tin phim, rạp chiếu, suất chiếu và ghế đã chọn trước khi thanh toán.
+* Hỗ trợ nhiều phương thức thanh toán như thẻ tín dụng/thẻ ghi nợ, ví điện tử và ngân hàng trực tuyến.
+* Đảm bảo quá trình thanh toán an toàn và bảo mật.
+* Tự động phát hành vé điện tử sau khi thanh toán thành công.
+
+### 6. Quản Lý Vé Điện Tử
+
+* Hiển thị vé đã mua dưới dạng mã QR hoặc mã vạch.
+* Xem chi tiết vé và trạng thái đặt vé.
+* Hỗ trợ hủy vé hoặc hoàn vé theo chính sách của rạp.
+
+### 7. Thông Báo
+
+* Gửi thông báo xác nhận đặt vé thành công.
+* Cập nhật trạng thái thanh toán.
+* Thông báo về chương trình khuyến mãi, giảm giá và các sự kiện đặc biệt.
+* Nhắc nhở thời gian chiếu trước khi phim bắt đầu.
+
+## Yêu Cầu Phi Chức Năng
+
+* Giao diện thân thiện, trực quan và dễ sử dụng.
+* Đảm bảo bảo mật thông tin người dùng và các giao dịch thanh toán.
+* Hệ thống có tính ổn định và độ sẵn sàng cao.
+* Tốc độ tải dữ liệu và xử lý giao dịch nhanh chóng.
+* Hỗ trợ trên cả hai nền tảng Android và iOS.
+
+## Lợi Ích Mong Đợi
+
+Ứng dụng giúp giảm thời gian mua vé, nâng cao sự thuận tiện cho khách hàng, hạn chế tình trạng xếp hàng tại quầy vé và tăng cường tương tác với khách hàng thông qua các chương trình khuyến mãi cũng như gợi ý phim phù hợp với sở thích của từng người dùng.
