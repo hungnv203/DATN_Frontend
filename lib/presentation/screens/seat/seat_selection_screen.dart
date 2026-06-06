@@ -134,6 +134,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                                   },
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                              minimumSize: const Size(0, 50),
                             ),
                             child: provider.state == BookingState.loading
                                 ? const SpinKitThreeBounce(color: Colors.white, size: 20)

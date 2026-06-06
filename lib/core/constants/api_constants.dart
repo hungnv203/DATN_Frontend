@@ -1,5 +1,5 @@
 class ApiConstants {
-  static const String baseUrl = 'http://localhost:5275/api';
+  static const String baseUrl = 'https://datn-0w8z.onrender.com/api/';
   
   // Auth
   static const String login = '/Auth/sign-in';

@@ -17,13 +17,10 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   @override
   Future<List<SeatModel>> getSeats(String showtimeId) async {
     try {
-      final response = await client.get(ApiConstants.seats);
+      final response = await client.get('${ApiConstants.showtimes}/$showtimeId/seats');
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
-        final allSeats = data.map((json) => SeatModel.fromJson(json)).toList();
-        // Since we don't have showtimeId directly on seats, we might need a workaround.
-        // Returning all seats for demo, or filter by showtimeId if the backend structure supports it.
-        return allSeats;
+        return data.map((json) => SeatModel.fromJson(json)).toList();
       } else {
         throw ServerException('Failed to load seats');
       }
@@ -35,13 +32,24 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   @override
   Future<BookingModel> createBooking(String showtimeId, List<String> seatIds) async {
     try {
+      // 1. Hold seats first
+      await client.post(
+        '${ApiConstants.bookings}/hold-seats',
+        data: {
+          'showtimeId': showtimeId,
+          'seatIds': seatIds,
+        },
+      );
+
+      // 2. Create the booking submitting the seatIds
       final response = await client.post(
         ApiConstants.bookings,
         data: {
           'showtimeId': showtimeId,
           'status': 'Pending',
           'totalPrice': 0.0,
-          'userId': '00000000-0000-0000-0000-000000000000', // Default empty GUID
+          'userId': '00000000-0000-0000-0000-000000000000', // Default empty GUID, backend will assign current user
+          'seatIds': seatIds,
         },
       );
       if (response.statusCode == 200 || response.statusCode == 201) {

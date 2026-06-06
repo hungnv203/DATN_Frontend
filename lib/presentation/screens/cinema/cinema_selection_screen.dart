@@ -100,7 +100,12 @@ class _CinemaSelectionScreenState extends State<CinemaSelectionScreen> {
                                 final cinema = provider.cinemas[index];
                                 // Filter showtimes for this cinema implicitly by checking rooms.
                                 // In a real app, API might return nested, but here we filter by matching Room's cinemaId.
-                                final cinemaShowtimes = provider.showtimes.where((st) => st.room?.cinemaId == cinema.id).toList();
+                                final cinemaShowtimes = provider.showtimes.where((st) {
+                                  return st.room?.cinemaId == cinema.id &&
+                                         st.startTime.year == provider.selectedDate.year &&
+                                         st.startTime.month == provider.selectedDate.month &&
+                                         st.startTime.day == provider.selectedDate.day;
+                                }).toList();
 
                                 return ExpansionTile(
                                   initiallyExpanded: provider.selectedCinema?.id == cinema.id,
