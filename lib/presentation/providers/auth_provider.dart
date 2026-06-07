@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/usecases/login_usecase.dart';
+import '../../domain/usecases/logout_usecase.dart';
 import '../../domain/usecases/register_usecase.dart';
 
 enum AuthState { initial, loading, success, error }
@@ -8,8 +9,9 @@ enum AuthState { initial, loading, success, error }
 class AuthProvider extends ChangeNotifier {
   final LoginUseCase _loginUseCase;
   final RegisterUseCase _registerUseCase;
+  final LogoutUsecase _logoutUsecase;
 
-  AuthProvider(this._loginUseCase, this._registerUseCase);
+  AuthProvider(this._loginUseCase, this._registerUseCase,this._logoutUsecase);
 
   AuthState state = AuthState.initial;
   String? errorMessage;
@@ -61,5 +63,11 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+  Future<void> logout() async {
+    await _logoutUsecase();
+    currentUser = null;
+    state = AuthState.initial;
+    notifyListeners();
   }
 }

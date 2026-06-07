@@ -5,8 +5,8 @@ import '../../core/network/dio_client.dart';
 import '../models/user_model.dart';
 
 abstract class AuthRemoteDataSource {
-  Future<UserModel> login(String email, String password);
-  Future<UserModel> register(String email, String password, String fullName, String phoneNumber);
+  Future<Map<String, dynamic>> login(String email, String password);
+  Future<Map<String, dynamic>> register(String email, String password, String fullName, String phoneNumber);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -15,7 +15,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   AuthRemoteDataSourceImpl(this.client);
 
   @override
-  Future<UserModel> login(String email, String password) async {
+  Future<Map<String, dynamic>> login(String email, String password) async {
     try {
       final response = await client.post(
         ApiConstants.login,
@@ -25,7 +25,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         },
       );
       if (response.statusCode == 200) {
-        return UserModel.fromJson(response.data['user']);
+        return {
+          'user': UserModel.fromJson(response.data['user']),
+          'token': response.data['accessToken'],
+        };
       } else {
         throw ServerException(response.data['message'] ?? 'Login failed');
       }
@@ -35,7 +38,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<UserModel> register(String email, String password, String fullName, String phoneNumber) async {
+  Future<Map<String, dynamic>> register(String email, String password, String fullName, String phoneNumber) async {
     try {
       final response = await client.post(
         ApiConstants.register,
@@ -47,7 +50,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         },
       );
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return UserModel.fromJson(response.data['user']);
+        return {
+          'user': UserModel.fromJson(response.data['user']),
+          'token': response.data['accessToken'],
+        };
       } else {
         throw ServerException(response.data['message'] ?? 'Registration failed');
       }

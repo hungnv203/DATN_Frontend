@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../auth/login_screen.dart';
 import '../ticket/my_tickets_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -54,7 +55,8 @@ class ProfileScreen extends StatelessWidget {
                     title: const Text('Logout', style: TextStyle(color: AppColors.error)),
                     onTap: () {
                       // Call logout and navigate back to login
-                      Navigator.popUntil(context, (route) => route.isFirst);
+                      authProvider.logout();
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
                     },
                   ),
                 ],

@@ -2,6 +2,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_data_source.dart';
+import '../models/user_model.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource remoteDataSource;
@@ -14,8 +15,14 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<User> login(String email, String password) async {
-    final userModel = await remoteDataSource.login(email, password);
-    // In a real app, save token from response to SharedPreferences here.
+    final response = await remoteDataSource.login(email, password);
+    final userModel = response['user'] as UserModel;
+    final token = response['token'] as String?;
+    
+    if (token != null) {
+      await prefs.setString('auth_token', token);
+    }
+    
     return userModel;
   }
 
@@ -26,7 +33,14 @@ class AuthRepositoryImpl implements AuthRepository {
     required String fullName,
     required String phoneNumber,
   }) async {
-    final userModel = await remoteDataSource.register(email, password, fullName, phoneNumber);
+    final response = await remoteDataSource.register(email, password, fullName, phoneNumber);
+    final userModel = response['user'] as UserModel;
+    final token = response['token'] as String?;
+    
+    if (token != null) {
+      await prefs.setString('auth_token', token);
+    }
+    
     return userModel;
   }
 

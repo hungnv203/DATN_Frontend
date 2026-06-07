@@ -7,6 +7,7 @@ import 'core/network/dio_client.dart';
 import 'data/datasources/auth_remote_data_source.dart';
 import 'data/repositories/auth_repository_impl.dart';
 import 'domain/usecases/login_usecase.dart';
+import 'domain/usecases/logout_usecase.dart';
 import 'domain/usecases/register_usecase.dart';
 import 'presentation/providers/auth_provider.dart';
 import 'presentation/screens/auth/login_screen.dart';
@@ -45,6 +46,7 @@ void main() async {
   );
   final loginUseCase = LoginUseCase(authRepository);
   final registerUseCase = RegisterUseCase(authRepository);
+  final logoutUsecase = LogoutUsecase(authRepository);
 
   // Movie Dependencies
   final movieRemoteDataSource = MovieRemoteDataSourceImpl(dioClient);
@@ -75,7 +77,7 @@ void main() async {
         Provider<SharedPreferences>.value(value: prefs),
         Provider<DioClient>.value(value: dioClient),
         ChangeNotifierProvider(
-          create: (_) => AuthProvider(loginUseCase, registerUseCase),
+          create: (_) => AuthProvider(loginUseCase, registerUseCase, logoutUsecase),
         ),
         ChangeNotifierProvider(
           create: (_) => MovieProvider(getNowPlayingUseCase, getUpcomingUseCase),
