@@ -4,6 +4,7 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../domain/entities/showtime.dart';
 import '../../providers/booking_provider.dart';
+import '../payment/payment_screen.dart';
 
 class SeatSelectionScreen extends StatefulWidget {
   final Showtime showtime;
@@ -126,10 +127,27 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                                     final success = await provider.bookTickets(widget.showtime.id);
                                     if (success && mounted) {
                                       // Navigate to Checkout / Success
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Booking Successful!')),
+                                      final successPay = await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => PaymentScreen(booking: provider.currentBooking!),
+                                        ),
                                       );
+
+                                      if (successPay == true) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Booking Successful!')),
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Payment Cancelled/Failed')),
+                                        );
+                                      }
                                       Navigator.popUntil(context, (route) => route.isFirst);
+                                    } else if (!success && mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text(provider.errorMessage ?? 'Failed to book tickets. Please try again.')),
+                                      );
                                     }
                                   },
                             style: ElevatedButton.styleFrom(
