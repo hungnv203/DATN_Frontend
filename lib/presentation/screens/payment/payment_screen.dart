@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:dio/dio.dart';
+import 'package:provider/provider.dart';
+import '../../../core/network/dio_client.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../domain/entities/booking.dart';
 
@@ -51,9 +52,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   Future<void> _createPaymentUrl() async {
     try {
-      final dio = Dio();
-      final response = await dio.post(
-        '${ApiConstants.baseUrl}${ApiConstants.payments}/create-url',
+      final client = Provider.of<DioClient>(context, listen: false);
+      final response = await client.post(
+        '${ApiConstants.payments}/create-url',
         data: {'bookingId': widget.booking.id},
       );
       
@@ -66,7 +67,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Không thể khởi tạo thanh toán VNPAY';
+        _errorMessage = 'Không thể khởi tạo thanh toán VNPAY: ${e.toString()}';
       });
     }
   }
