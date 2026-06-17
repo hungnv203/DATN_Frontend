@@ -37,7 +37,7 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
                       itemCount: provider.tickets.length,
                       itemBuilder: (context, index) {
                         final ticket = provider.tickets[index];
-                        final movieTitle = ticket.booking?.showtime?.room?.cinemaId ?? 'Movie Name'; // Just placeholder for demo
+                        final movieTitle = ticket.movieTitle ?? ticket.booking?.showtime?.room?.cinemaId ?? 'Movie Name';
                         return Card(
                           margin: const EdgeInsets.only(bottom: 16),
                           color: AppColors.surface,
@@ -54,9 +54,27 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
                                     children: [
                                       Text(movieTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                                       const SizedBox(height: 8),
-                                      Text('Seat: ${ticket.seatLabel}', style: const TextStyle(color: AppColors.textSecondary)),
+                                      Text('Seat: ${ticket.seatLabel.isNotEmpty ? ticket.seatLabel : 'N/A'}', style: const TextStyle(color: AppColors.textSecondary)),
                                       const SizedBox(height: 4),
-                                      Text('Status: ${ticket.status}', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                                      Row(
+                                        children: [
+                                          const Text('Ticket: ', style: TextStyle(color: AppColors.textSecondary)),
+                                          Text(ticket.status, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          const Text('Payment: ', style: TextStyle(color: AppColors.textSecondary)),
+                                          Text(
+                                            ticket.paymentStatus ?? 'Unknown',
+                                            style: TextStyle(
+                                              color: (ticket.paymentStatus == 'Paid') ? Colors.green : Colors.orange,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ],
                                   ),
                                 ),

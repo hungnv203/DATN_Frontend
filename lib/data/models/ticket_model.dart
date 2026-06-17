@@ -9,16 +9,20 @@ class TicketModel extends Ticket {
     required super.seatLabel,
     required super.status,
     super.booking,
+    super.movieTitle,
+    super.paymentStatus,
   });
 
   factory TicketModel.fromJson(Map<String, dynamic> json) {
     return TicketModel(
       id: json['id'] ?? '',
       bookingId: json['bookingId'] ?? '',
-      qrCodeData: json['qrCodeData'] ?? '',
+      qrCodeData: json['qrCode'] ?? json['qrCodeData'] ?? '',
       seatLabel: json['seatLabel'] ?? '',
       status: json['status'] ?? '',
       booking: json['booking'] != null ? BookingModel.fromJson(json['booking']) : null,
+      movieTitle: json['movieTitle'],
+      paymentStatus: json['paymentStatus'],
     );
   }
 }

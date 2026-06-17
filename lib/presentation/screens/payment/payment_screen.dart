@@ -74,7 +74,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   void _handlePaymentResult(String url) {
     final uri = Uri.parse(url);
-    final success = uri.queryParameters['success'] == 'true';
+    final success = uri.queryParameters['success']?.toLowerCase() == 'true';
     
     // Đóng màn hình thanh toán và trả về kết quả
     Navigator.pop(context, success);
