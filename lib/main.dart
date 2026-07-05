@@ -34,7 +34,7 @@ import 'presentation/providers/ticket_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   final prefs = await SharedPreferences.getInstance();
   final dioClient = DioClient(prefs);
 
@@ -64,6 +64,7 @@ void main() async {
   final bookingRemoteDataSource = BookingRemoteDataSourceImpl(dioClient);
   final bookingRepository = BookingRepositoryImpl(bookingRemoteDataSource);
   final getSeatsUseCase = GetSeatsUseCase(bookingRepository);
+  final getConcessionsUseCase = GetConcessionsUseCase(bookingRepository);
   final createBookingUseCase = CreateBookingUseCase(bookingRepository);
 
   // Ticket Dependencies
@@ -77,16 +78,19 @@ void main() async {
         Provider<SharedPreferences>.value(value: prefs),
         Provider<DioClient>.value(value: dioClient),
         ChangeNotifierProvider(
-          create: (_) => AuthProvider(loginUseCase, registerUseCase, logoutUsecase),
+          create: (_) =>
+              AuthProvider(loginUseCase, registerUseCase, logoutUsecase),
         ),
         ChangeNotifierProvider(
-          create: (_) => MovieProvider(getNowPlayingUseCase, getUpcomingUseCase),
+          create: (_) =>
+              MovieProvider(getNowPlayingUseCase, getUpcomingUseCase),
         ),
         ChangeNotifierProvider(
           create: (_) => CinemaProvider(getCinemasUseCase, getShowtimesUseCase),
         ),
         ChangeNotifierProvider(
-          create: (_) => BookingProvider(getSeatsUseCase, createBookingUseCase),
+          create: (_) => BookingProvider(
+              getSeatsUseCase, getConcessionsUseCase, createBookingUseCase),
         ),
         ChangeNotifierProvider(
           create: (_) => TicketProvider(getMyTicketsUseCase),

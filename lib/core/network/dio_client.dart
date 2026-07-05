@@ -50,7 +50,7 @@ class DioClient {
       );
       return response;
     } on DioException catch (e) {
-      throw ServerException(e.message ?? 'Unknown error');
+      throw ServerException(_handleDioError(e));
     }
   }
 
@@ -69,7 +69,7 @@ class DioClient {
       );
       return response;
     } on DioException catch (e) {
-      throw ServerException(e.message ?? 'Unknown error');
+      throw ServerException(_handleDioError(e));
     }
   }
 
@@ -88,7 +88,7 @@ class DioClient {
       );
       return response;
     } on DioException catch (e) {
-      throw ServerException(e.message ?? 'Unknown error');
+      throw ServerException(_handleDioError(e));
     }
   }
 
@@ -107,7 +107,39 @@ class DioClient {
       );
       return response;
     } on DioException catch (e) {
-      throw ServerException(e.message ?? 'Unknown error');
+      throw ServerException(_handleDioError(e));
     }
+  }
+  String _handleDioError(DioException e) {
+    if (e.response?.data != null) {
+      try {
+        final data = e.response!.data;
+        if (data is Map) {
+          if (data['message'] != null) {
+            return data['message'].toString();
+          }
+          if (data['title'] != null) {
+            String msg = data['title'].toString();
+            if (data['errors'] != null && data['errors'] is Map) {
+              final errors = data['errors'] as Map;
+              if (errors.isNotEmpty) {
+                final firstError = errors.values.first;
+                if (firstError is List && firstError.isNotEmpty) {
+                  msg += ": " + firstError.first.toString();
+                } else {
+                  msg += ": " + firstError.toString();
+                }
+              }
+            }
+            return msg;
+          }
+          return data.toString();
+        }
+        return data.toString();
+      } catch (_) {
+        // Fallback to default behavior if parsing fails
+      }
+    }
+    return e.message ?? 'Unknown error';
   }
 }

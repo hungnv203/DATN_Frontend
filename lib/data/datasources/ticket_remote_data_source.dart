@@ -16,7 +16,7 @@ class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
   @override
   Future<List<TicketModel>> getMyTickets() async {
     try {
-      final response = await client.get(ApiConstants.tickets);
+      final response = await client.get(ApiConstants.myTickets);
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
         return data.map((json) => TicketModel.fromJson(json)).toList();

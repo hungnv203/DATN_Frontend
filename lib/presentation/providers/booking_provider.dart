@@ -1,30 +1,36 @@
 import 'package:flutter/material.dart';
-import '../../domain/entities/seat.dart';
 import '../../domain/entities/booking.dart';
+import '../../domain/entities/concession.dart';
+import '../../domain/entities/seat.dart';
 import '../../domain/usecases/booking_usecases.dart';
 
 enum BookingState { initial, loading, success, error }
 
 class BookingProvider extends ChangeNotifier {
   final GetSeatsUseCase _getSeats;
+  final GetConcessionsUseCase _getConcessions;
   final CreateBookingUseCase _createBooking;
 
-  BookingProvider(this._getSeats, this._createBooking);
+  BookingProvider(this._getSeats, this._getConcessions, this._createBooking);
 
   BookingState state = BookingState.initial;
   String? errorMessage;
 
   List<Seat> seats = [];
   List<Seat> selectedSeats = [];
+  List<Concession> concessions = [];
+  Map<String, int> selectedConcessions = {};
   Booking? currentBooking;
 
-  Future<void> fetchSeats(String showtimeId) async {
+  Future<void> fetchBookingOptions(String showtimeId) async {
     try {
       state = BookingState.loading;
       selectedSeats.clear();
+      selectedConcessions.clear();
       notifyListeners();
 
       seats = await _getSeats(showtimeId);
+      concessions = await _getConcessions();
 
       state = BookingState.success;
       notifyListeners();
@@ -35,9 +41,13 @@ class BookingProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> fetchSeats(String showtimeId) async {
+    await fetchBookingOptions(showtimeId);
+  }
+
   void toggleSeatSelection(Seat seat) {
     if (!seat.isAvailable) return;
-    
+
     if (selectedSeats.contains(seat)) {
       selectedSeats.remove(seat);
     } else {
@@ -46,8 +56,40 @@ class BookingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  int getConcessionQuantity(String concessionId) {
+    return selectedConcessions[concessionId] ?? 0;
+  }
+
+  void incrementConcession(Concession concession) {
+    selectedConcessions[concession.id] =
+        getConcessionQuantity(concession.id) + 1;
+    notifyListeners();
+  }
+
+  void decrementConcession(Concession concession) {
+    final quantity = getConcessionQuantity(concession.id);
+    if (quantity <= 0) return;
+
+    if (quantity == 1) {
+      selectedConcessions.remove(concession.id);
+    } else {
+      selectedConcessions[concession.id] = quantity - 1;
+    }
+    notifyListeners();
+  }
+
   double getTotalPrice(double basePrice) {
+    return getSeatTotal(basePrice) + getConcessionTotal();
+  }
+
+  double getSeatTotal(double basePrice) {
     return selectedSeats.length * basePrice;
+  }
+
+  double getConcessionTotal() {
+    return concessions.fold<double>(0, (total, concession) {
+      return total + (concession.price * getConcessionQuantity(concession.id));
+    });
   }
 
   Future<bool> bookTickets(String showtimeId) async {
@@ -58,7 +100,8 @@ class BookingProvider extends ChangeNotifier {
       notifyListeners();
 
       final seatIds = selectedSeats.map((s) => s.id).toList();
-      currentBooking = await _createBooking(showtimeId, seatIds);
+      currentBooking =
+          await _createBooking(showtimeId, seatIds, selectedConcessions);
 
       state = BookingState.success;
       notifyListeners();

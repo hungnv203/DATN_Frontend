@@ -3,10 +3,16 @@ import '../../core/constants/api_constants.dart';
 import '../../core/error/exceptions.dart';
 import '../../core/network/dio_client.dart';
 import '../models/booking_model.dart';
+import '../models/concession_model.dart';
 
 abstract class BookingRemoteDataSource {
   Future<List<SeatModel>> getSeats(String showtimeId);
-  Future<BookingModel> createBooking(String showtimeId, List<String> seatIds);
+  Future<List<ConcessionModel>> getConcessions();
+  Future<BookingModel> createBooking(
+    String showtimeId,
+    List<String> seatIds,
+    Map<String, int> concessions,
+  );
 }
 
 class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
@@ -17,7 +23,8 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   @override
   Future<List<SeatModel>> getSeats(String showtimeId) async {
     try {
-      final response = await client.get('${ApiConstants.showtimes}/$showtimeId/seats');
+      final response =
+          await client.get('${ApiConstants.showtimes}/$showtimeId/seats');
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
         return data.map((json) => SeatModel.fromJson(json)).toList();
@@ -30,8 +37,38 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   }
 
   @override
-  Future<BookingModel> createBooking(String showtimeId, List<String> seatIds) async {
+  Future<List<ConcessionModel>> getConcessions() async {
     try {
+      final response = await client.get(ApiConstants.concessions);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data;
+        return data
+            .map((json) => ConcessionModel.fromJson(json))
+            .where((item) => item.isActive)
+            .toList();
+      } else {
+        throw ServerException('Failed to load concessions');
+      }
+    } on DioException catch (e) {
+      throw ServerException(e.message ?? 'Unknown error');
+    }
+  }
+
+  @override
+  Future<BookingModel> createBooking(
+    String showtimeId,
+    List<String> seatIds,
+    Map<String, int> concessions,
+  ) async {
+    try {
+      final selectedConcessions = concessions.entries
+          .where((entry) => entry.value > 0)
+          .map((entry) => {
+                'concessionId': entry.key,
+                'quantity': entry.value,
+              })
+          .toList();
+
       // 1. Hold seats first
       await client.post(
         '${ApiConstants.bookings}/hold-seats',
@@ -48,8 +85,10 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
           'showtimeId': showtimeId,
           'status': 'Pending',
           'totalPrice': 0.0,
-          'userId': '00000000-0000-0000-0000-000000000000', // Default empty GUID, backend will assign current user
+          'userId':
+              '00000000-0000-0000-0000-000000000000', // Default empty GUID, backend will assign current user
           'seatIds': seatIds,
+          'concessions': selectedConcessions,
         },
       );
       if (response.statusCode == 200 || response.statusCode == 201) {

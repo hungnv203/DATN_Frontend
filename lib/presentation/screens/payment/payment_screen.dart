@@ -57,17 +57,31 @@ class _PaymentScreenState extends State<PaymentScreen> {
         '${ApiConstants.payments}/create-url',
         data: {'bookingId': widget.booking.id},
       );
-      
+
+      final data = response.data;
+      String? url;
+
+      if (data is Map) {
+        url = data['url']?.toString() ?? data['Url']?.toString();
+      } else if (data is String) {
+        url = data; // In case the backend returned a raw string
+      }
+
       setState(() {
-        _paymentUrl = response.data['url'];
+        _paymentUrl = url;
       });
 
-      if (_paymentUrl != null) {
+      if (_paymentUrl != null && _paymentUrl!.isNotEmpty) {
         _controller.loadRequest(Uri.parse(_paymentUrl!));
+      } else {
+        setState(() {
+          _errorMessage =
+              'Backend trả về thành công nhưng không tìm thấy link VNPAY. Dữ liệu: $data';
+        });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Không thể khởi tạo thanh toán VNPAY: ${e.toString()}';
+        _errorMessage = 'Lỗi khi gọi API thanh toán: ${e.toString()}';
       });
     }
   }
@@ -75,7 +89,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   void _handlePaymentResult(String url) {
     final uri = Uri.parse(url);
     final success = uri.queryParameters['success']?.toLowerCase() == 'true';
-    
+
     // Đóng màn hình thanh toán và trả về kết quả
     Navigator.pop(context, success);
   }
@@ -91,7 +105,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
         ),
       ),
       body: _errorMessage != null
-          ? Center(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)))
+          ? Center(
+              child: Text(_errorMessage!,
+                  style: const TextStyle(color: Colors.red)))
           : _paymentUrl == null
               ? const Center(child: CircularProgressIndicator())
               : Stack(
