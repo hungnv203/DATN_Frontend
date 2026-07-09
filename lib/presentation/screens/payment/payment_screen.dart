@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:provider/provider.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/constants/api_constants.dart';
@@ -37,6 +38,35 @@ class _PaymentScreenState extends State<PaymentScreen> {
           },
           onPageFinished: (String url) {
             setState(() => _isLoading = false);
+          },
+          onWebResourceError: (WebResourceError error) {
+            if (error.isForMainFrame ?? true) {
+              setState(() {
+                _isLoading = false;
+                _errorMessage =
+                    'Khong tai duoc trang thanh toan: ${error.description} '
+                    '(code: ${error.errorCode})';
+              });
+            }
+          },
+          onSslAuthError: (SslAuthError error) {
+            final platformError = error.platform;
+            final url =
+                platformError is AndroidSslAuthError ? platformError.url : '';
+            final host = Uri.tryParse(url)?.host ?? '';
+            final isVnPaySandbox = host == 'sandbox.vnpayment.vn';
+
+            if (isVnPaySandbox) {
+              error.proceed();
+              return;
+            }
+
+            error.cancel();
+            setState(() {
+              _isLoading = false;
+              _errorMessage =
+                  'SSL cua trang thanh toan khong hop le nen WebView da chan.';
+            });
           },
           onNavigationRequest: (NavigationRequest request) {
             // Intercept return url from VNPAY

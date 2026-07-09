@@ -32,6 +32,11 @@ import 'data/repositories/ticket_repository_impl.dart';
 import 'domain/usecases/ticket_usecases.dart';
 import 'presentation/providers/ticket_provider.dart';
 
+import 'data/datasources/review_remote_data_source.dart';
+import 'data/repositories/review_repository_impl.dart';
+import 'domain/usecases/review_usecases.dart';
+import 'presentation/providers/review_provider.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -66,11 +71,20 @@ void main() async {
   final getSeatsUseCase = GetSeatsUseCase(bookingRepository);
   final getConcessionsUseCase = GetConcessionsUseCase(bookingRepository);
   final createBookingUseCase = CreateBookingUseCase(bookingRepository);
+  final quoteBookingUseCase = QuoteBookingUseCase(bookingRepository);
+  final getLoyaltyWalletUseCase = GetLoyaltyWalletUseCase(bookingRepository);
 
   // Ticket Dependencies
   final ticketRemoteDataSource = TicketRemoteDataSourceImpl(dioClient);
   final ticketRepository = TicketRepositoryImpl(ticketRemoteDataSource);
   final getMyTicketsUseCase = GetMyTicketsUseCase(ticketRepository);
+
+  // Review Dependencies
+  final reviewRemoteDataSource = ReviewRemoteDataSourceImpl(dioClient);
+  final reviewRepository = ReviewRepositoryImpl(reviewRemoteDataSource);
+  final getMovieReviewsUseCase = GetMovieReviewsUseCase(reviewRepository);
+  final getRatingSummaryUseCase = GetRatingSummaryUseCase(reviewRepository);
+  final submitReviewUseCase = SubmitReviewUseCase(reviewRepository);
 
   runApp(
     MultiProvider(
@@ -90,10 +104,22 @@ void main() async {
         ),
         ChangeNotifierProvider(
           create: (_) => BookingProvider(
-              getSeatsUseCase, getConcessionsUseCase, createBookingUseCase),
+            getSeatsUseCase,
+            getConcessionsUseCase,
+            createBookingUseCase,
+            quoteBookingUseCase,
+            getLoyaltyWalletUseCase,
+          ),
         ),
         ChangeNotifierProvider(
           create: (_) => TicketProvider(getMyTicketsUseCase),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ReviewProvider(
+            getMovieReviewsUseCase,
+            getRatingSummaryUseCase,
+            submitReviewUseCase,
+          ),
         ),
       ],
       child: const MovieBookingApp(),

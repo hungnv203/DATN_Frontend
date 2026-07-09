@@ -18,12 +18,22 @@ class SeatSelectionScreen extends StatefulWidget {
 }
 
 class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
+  final TextEditingController _promotionController = TextEditingController();
+  final TextEditingController _pointsController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<BookingProvider>().fetchBookingOptions(widget.showtime.id);
     });
+  }
+
+  @override
+  void dispose() {
+    _promotionController.dispose();
+    _pointsController.dispose();
+    super.dispose();
   }
 
   @override
@@ -82,7 +92,11 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                             }
 
                             return GestureDetector(
-                              onTap: () => provider.toggleSeatSelection(seat),
+                              onTap: () {
+                                provider.toggleSeatSelection(seat);
+                                provider.quoteCurrentSelection(
+                                    widget.showtime.id);
+                              },
                               child: Container(
                                 decoration: BoxDecoration(
                                   color: seatColor,
@@ -107,7 +121,10 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                         ),
                 ),
                 if (provider.concessions.isNotEmpty)
-                  _ConcessionSection(provider: provider),
+                  _ConcessionSection(
+                    provider: provider,
+                    showtimeId: widget.showtime.id,
+                  ),
 
                 // Bottom Bar
                 Container(
@@ -120,6 +137,14 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      _DiscountSection(
+                        provider: provider,
+                        promotionController: _promotionController,
+                        pointsController: _pointsController,
+                        onApply: () => provider
+                            .quoteCurrentSelection(widget.showtime.id),
+                      ),
+                      const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -136,8 +161,10 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                                   fit: BoxFit.scaleDown,
                                   alignment: Alignment.centerLeft,
                                   child: Text(
-                                    _formatCurrency(provider.getTotalPrice(
-                                        widget.showtime.basePrice)),
+                                    _formatCurrency(provider.currentQuote
+                                            ?.totalPrice ??
+                                        provider.getTotalPrice(
+                                            widget.showtime.basePrice)),
                                     style: const TextStyle(
                                         fontSize: 24,
                                         fontWeight: FontWeight.bold,
@@ -146,8 +173,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Tickets ${_formatCurrency(provider.getSeatTotal(widget.showtime.basePrice))} + Combo ${_formatCurrency(provider.getConcessionTotal())}',
-                                  maxLines: 1,
+                                  _buildPriceBreakdown(provider),
+                                  maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
                                       color: AppColors.textSecondary,
@@ -239,9 +266,13 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 }
 
 class _ConcessionSection extends StatelessWidget {
-  const _ConcessionSection({required this.provider});
+  const _ConcessionSection({
+    required this.provider,
+    required this.showtimeId,
+  });
 
   final BookingProvider provider;
+  final String showtimeId;
 
   @override
   Widget build(BuildContext context) {
@@ -270,14 +301,88 @@ class _ConcessionSection extends StatelessWidget {
                 return _ConcessionCard(
                   concession: concession,
                   quantity: provider.getConcessionQuantity(concession.id),
-                  onAdd: () => provider.incrementConcession(concession),
-                  onRemove: () => provider.decrementConcession(concession),
+                  onAdd: () {
+                    provider.incrementConcession(concession);
+                    provider.quoteCurrentSelection(showtimeId);
+                  },
+                  onRemove: () {
+                    provider.decrementConcession(concession);
+                    provider.quoteCurrentSelection(showtimeId);
+                  },
                 );
               },
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _DiscountSection extends StatelessWidget {
+  const _DiscountSection({
+    required this.provider,
+    required this.promotionController,
+    required this.pointsController,
+    required this.onApply,
+  });
+
+  final BookingProvider provider;
+  final TextEditingController promotionController;
+  final TextEditingController pointsController;
+  final VoidCallback onApply;
+
+  @override
+  Widget build(BuildContext context) {
+    final availablePoints = provider.loyaltyWallet?.points ?? 0;
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: promotionController,
+                onChanged: provider.updatePromotionCode,
+                decoration: const InputDecoration(
+                  labelText: 'Promotion code',
+                  isDense: true,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            SizedBox(
+              width: 122,
+              child: TextField(
+                controller: pointsController,
+                keyboardType: TextInputType.number,
+                onChanged: provider.updateUsedPoints,
+                decoration: InputDecoration(
+                  labelText: 'Points',
+                  helperText: '$availablePoints available',
+                  isDense: true,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton.filled(
+              onPressed: provider.selectedSeats.isEmpty ? null : onApply,
+              icon: const Icon(Icons.check),
+              tooltip: 'Apply discount',
+            ),
+          ],
+        ),
+        if (provider.errorMessage != null &&
+            provider.state != BookingState.loading)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              provider.errorMessage!,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -429,4 +534,15 @@ class _QuantityButton extends StatelessWidget {
 
 String _formatCurrency(double value) {
   return NumberFormat.currency(locale: 'vi_VN', symbol: 'VND').format(value);
+}
+
+String _buildPriceBreakdown(BookingProvider provider) {
+  final quote = provider.currentQuote;
+  if (quote == null) {
+    return 'Tickets + Combo calculated after seat selection';
+  }
+
+  return 'Subtotal ${_formatCurrency(quote.subtotal)}'
+      ' - Promo ${_formatCurrency(quote.discountAmount)}'
+      ' - Points ${_formatCurrency(quote.pointDiscountAmount)}';
 }

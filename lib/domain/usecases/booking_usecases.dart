@@ -1,5 +1,7 @@
 import '../entities/booking.dart';
+import '../entities/booking_quote.dart';
 import '../entities/concession.dart';
+import '../entities/loyalty_wallet.dart';
 import '../entities/seat.dart';
 import '../repositories/booking_repository.dart';
 
@@ -32,7 +34,47 @@ class CreateBookingUseCase {
     String showtimeId,
     List<String> seatIds,
     Map<String, int> concessions,
+    String? promotionCode,
+    int usedPoints,
   ) {
-    return _repository.createBooking(showtimeId, seatIds, concessions);
+    return _repository.createBooking(
+      showtimeId,
+      seatIds,
+      concessions,
+      promotionCode,
+      usedPoints,
+    );
+  }
+}
+
+class QuoteBookingUseCase {
+  final BookingRepository _repository;
+
+  QuoteBookingUseCase(this._repository);
+
+  Future<BookingQuote> call(
+    String showtimeId,
+    List<String> seatIds,
+    Map<String, int> concessions,
+    String? promotionCode,
+    int usedPoints,
+  ) {
+    return _repository.quoteBooking(
+      showtimeId,
+      seatIds,
+      concessions,
+      promotionCode,
+      usedPoints,
+    );
+  }
+}
+
+class GetLoyaltyWalletUseCase {
+  final BookingRepository _repository;
+
+  GetLoyaltyWalletUseCase(this._repository);
+
+  Future<LoyaltyWallet> call() {
+    return _repository.getLoyaltyWallet();
   }
 }

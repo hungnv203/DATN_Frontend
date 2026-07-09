@@ -22,8 +22,18 @@ class MovieRemoteDataSourceImpl implements MovieRemoteDataSource {
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
         final movies = data.map((json) => MovieModel.fromJson(json)).toList();
-        // Return movies released before or today
-        return movies.where((m) => m.releaseDate.isBefore(DateTime.now().add(const Duration(days: 1)))).toList();
+        final today = DateTime.now();
+        final todayDate = DateTime(today.year, today.month, today.day);
+        return movies.where((m) {
+          final status = m.status.trim().toLowerCase();
+          final releaseDate = DateTime(
+            m.releaseDate.year,
+            m.releaseDate.month,
+            m.releaseDate.day,
+          );
+          return status != 'upcoming' &&
+              !releaseDate.isAfter(todayDate);
+        }).toList();
       } else {
         throw ServerException('Failed to load now playing movies');
       }
@@ -39,8 +49,17 @@ class MovieRemoteDataSourceImpl implements MovieRemoteDataSource {
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
         final movies = data.map((json) => MovieModel.fromJson(json)).toList();
-        // Return movies released in the future
-        return movies.where((m) => m.releaseDate.isAfter(DateTime.now())).toList();
+        final today = DateTime.now();
+        final todayDate = DateTime(today.year, today.month, today.day);
+        return movies.where((m) {
+          final status = m.status.trim().toLowerCase();
+          final releaseDate = DateTime(
+            m.releaseDate.year,
+            m.releaseDate.month,
+            m.releaseDate.day,
+          );
+          return status == 'upcoming' || releaseDate.isAfter(todayDate);
+        }).toList();
       } else {
         throw ServerException('Failed to load upcoming movies');
       }
