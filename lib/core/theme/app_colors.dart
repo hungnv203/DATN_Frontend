@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const Color primary = Color(0xFFE50914); // Netflix-like red
-  static const Color background = Color(0xFF0F172A); // Dark slate
-  static const Color surface = Color(0xFF1E293B);
+  static const Color primary = Color(0xFFFF4D5E);
+  static const Color primaryContainer = Color(0xFF5C1722);
+  static const Color secondary = Color(0xFFFFC857);
+  static const Color background = Color(0xFF090D18);
+  static const Color surface = Color(0xFF121827);
+  static const Color surfaceHigh = Color(0xFF1A2234);
+  static const Color outline = Color(0xFF303A50);
   
   static const Color textPrimary = Colors.white;
-  static const Color textSecondary = Color(0xFF94A3B8);
+  static const Color textSecondary = Color(0xFFA7B0C3);
   
   static const Color success = Color(0xFF10B981);
   static const Color error = Color(0xFFEF4444);

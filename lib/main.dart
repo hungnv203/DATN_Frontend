@@ -58,6 +58,7 @@ void main() async {
   final movieRepository = MovieRepositoryImpl(movieRemoteDataSource);
   final getNowPlayingUseCase = GetNowPlayingMoviesUseCase(movieRepository);
   final getUpcomingUseCase = GetUpcomingMoviesUseCase(movieRepository);
+  final getMovieDiscoveryUseCase = GetMovieDiscoveryUseCase(movieRepository);
 
   // Cinema Dependencies
   final cinemaRemoteDataSource = CinemaRemoteDataSourceImpl(dioClient);
@@ -97,7 +98,11 @@ void main() async {
         ),
         ChangeNotifierProvider(
           create: (_) =>
-              MovieProvider(getNowPlayingUseCase, getUpcomingUseCase),
+              MovieProvider(
+                getNowPlayingUseCase,
+                getUpcomingUseCase,
+                getMovieDiscoveryUseCase,
+              ),
         ),
         ChangeNotifierProvider(
           create: (_) => CinemaProvider(getCinemasUseCase, getShowtimesUseCase),
@@ -134,7 +139,9 @@ class MovieBookingApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Movie Booking App',
+      debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
+      themeMode: ThemeMode.dark,
       home: const LoginScreen(),
     );
   }

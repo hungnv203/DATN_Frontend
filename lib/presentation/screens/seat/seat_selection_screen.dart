@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/app_notification.dart';
 import '../../../domain/entities/concession.dart';
 import '../../../domain/entities/showtime.dart';
 import '../../providers/booking_provider.dart';
@@ -36,6 +37,82 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     super.dispose();
   }
 
+  Future<void> _showBookingExtras() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return Consumer<BookingProvider>(
+          builder: (context, currentProvider, _) {
+            return SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.viewInsetsOf(context).bottom + 20,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 10),
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.textSecondary,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 8, 0),
+                      child: Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'Popcorn, drinks & discounts',
+                              style: TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.pop(sheetContext),
+                            icon: const Icon(Icons.close),
+                            tooltip: 'Close',
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (currentProvider.concessions.isNotEmpty)
+                      _ConcessionSection(
+                        provider: currentProvider,
+                        showtimeId: widget.showtime.id,
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                      child: _DiscountSection(
+                        provider: currentProvider,
+                        promotionController: _promotionController,
+                        pointsController: _pointsController,
+                        onApply: () => currentProvider
+                            .quoteCurrentSelection(widget.showtime.id),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<BookingProvider>();
@@ -46,11 +123,11 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
           ? const Center(child: SpinKitFadingCircle(color: AppColors.primary))
           : Column(
               children: [
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
                 // Screen curve
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 40),
-                  height: 40,
+                  height: 32,
                   decoration: const BoxDecoration(
                     border: Border(
                       top: BorderSide(color: AppColors.primary, width: 4),
@@ -64,14 +141,14 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                       style: TextStyle(
                           color: AppColors.textSecondary, letterSpacing: 4)),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 12),
 
                 // Seats Grid
                 Expanded(
                   child: provider.seats.isEmpty
                       ? const Center(child: Text('No seats available'))
                       : GridView.builder(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 8,
@@ -120,15 +197,10 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                           },
                         ),
                 ),
-                if (provider.concessions.isNotEmpty)
-                  _ConcessionSection(
-                    provider: provider,
-                    showtimeId: widget.showtime.id,
-                  ),
 
                 // Bottom Bar
                 Container(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
                   decoration: const BoxDecoration(
                     color: AppColors.surface,
                     borderRadius:
@@ -137,14 +209,11 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _DiscountSection(
+                      _BookingExtrasButton(
                         provider: provider,
-                        promotionController: _promotionController,
-                        pointsController: _pointsController,
-                        onApply: () => provider
-                            .quoteCurrentSelection(widget.showtime.id),
+                        onPressed: _showBookingExtras,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 10),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -198,12 +267,9 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                                       if (success) {
                                         final booking = provider.currentBooking;
                                         if (booking == null) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                  'Failed to create booking. Please try again.'),
-                                            ),
+                                          AppNotification.showError(
+                                            context,
+                                            'Failed to create booking. Please try again.',
                                           );
                                           return;
                                         }
@@ -218,29 +284,23 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                                         if (!context.mounted) return;
 
                                         if (successPay == true) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            const SnackBar(
-                                                content: Text(
-                                                    'Booking Successful!')),
+                                          AppNotification.showSuccess(
+                                            context,
+                                            'Booking Successful!',
                                           );
                                         } else {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            const SnackBar(
-                                                content: Text(
-                                                    'Payment Cancelled/Failed')),
+                                          AppNotification.showError(
+                                            context,
+                                            'Payment Cancelled/Failed',
                                           );
                                         }
                                         Navigator.popUntil(
                                             context, (route) => route.isFirst);
                                       } else {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          SnackBar(
-                                              content: Text(provider
-                                                      .errorMessage ??
-                                                  'Failed to book tickets. Please try again.')),
+                                        AppNotification.showError(
+                                          context,
+                                          provider.errorMessage ??
+                                              'Failed to book tickets. Please try again.',
                                         );
                                       }
                                     },
@@ -261,6 +321,78 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                 ),
               ],
             ),
+    );
+  }
+}
+
+class _BookingExtrasButton extends StatelessWidget {
+  const _BookingExtrasButton({
+    required this.provider,
+    required this.onPressed,
+  });
+
+  final BookingProvider provider;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final concessionCount = provider.selectedConcessions.values.fold<int>(
+      0,
+      (total, quantity) => total + quantity,
+    );
+    final hasDiscount = provider.promotionCode.isNotEmpty ||
+        provider.usedPoints > 0;
+    final details = <String>[
+      if (concessionCount > 0) '$concessionCount item(s)',
+      if (hasDiscount) 'Discount added',
+    ];
+
+    return Material(
+      color: AppColors.seatAvailable.withOpacity(0.18),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          child: Row(
+            children: [
+              const Icon(Icons.fastfood_outlined, color: AppColors.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Popcorn, drinks & discounts',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      details.isEmpty
+                          ? 'Optional - add later if needed'
+                          : details.join(' / '),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.keyboard_arrow_up,
+                color: AppColors.textSecondary,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -19,17 +19,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _phoneController = TextEditingController();
 
   @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _nameController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Account')),
+      appBar: AppBar(title: const Text('Tạo tài khoản')),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
+          padding: EdgeInsets.fromLTRB(24, 16, 24, MediaQuery.viewInsetsOf(context).bottom + 24),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Form(
+                key: _formKey,
+                child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 TextFormField(
@@ -100,9 +112,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         },
                   child: authProvider.state == AuthState.loading
                       ? const SpinKitThreeBounce(color: Colors.white, size: 20)
-                      : const Text('Sign Up', style: TextStyle(fontSize: 16)),
+                      : const Text('Đăng ký', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                 ),
               ],
+            ),
+              ),
             ),
           ),
         ),

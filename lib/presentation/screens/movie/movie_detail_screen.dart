@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/app_notification.dart';
 import '../../../domain/entities/movie.dart';
 import '../../providers/review_provider.dart';
 import '../cinema/cinema_selection_screen.dart';
@@ -249,75 +250,116 @@ class _ReviewSection extends StatelessWidget {
     );
   }
 
-  void _showReviewDialog(BuildContext context) {
+  Future<void> _showReviewDialog(BuildContext pageContext) async {
     int selectedRating = 5;
+    bool isSubmitting = false;
     final controller = TextEditingController();
 
-    showDialog<void>(
-      context: context,
+    await showDialog<void>(
+      context: pageContext,
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 24,
+              ),
+              scrollable: true,
               title: const Text('Rate this movie'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(5, (index) {
-                      final rating = index + 1;
-                      return IconButton(
-                        onPressed: () {
-                          setDialogState(() {
-                            selectedRating = rating;
-                          });
-                        },
-                        icon: Icon(
-                          rating <= selectedRating
-                              ? Icons.star
-                              : Icons.star_border,
-                          color: Colors.amber,
-                        ),
-                      );
-                    }),
+                  Semantics(
+                    label: 'Movie rating: $selectedRating out of 5 stars',
+                    child: Row(
+                      children: List.generate(5, (index) {
+                        final rating = index + 1;
+                        return Expanded(
+                          child: IconButton(
+                            tooltip: '$rating star${rating == 1 ? '' : 's'}',
+                            constraints: const BoxConstraints(
+                              minWidth: 40,
+                              minHeight: 48,
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            onPressed: isSubmitting
+                                ? null
+                                : () {
+                                    setDialogState(() {
+                                      selectedRating = rating;
+                                    });
+                                  },
+                            icon: Icon(
+                              rating <= selectedRating
+                                  ? Icons.star_rounded
+                                  : Icons.star_outline_rounded,
+                              color: Colors.amber,
+                              size: 32,
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
                   ),
+                  const SizedBox(height: 12),
                   TextField(
                     controller: controller,
+                    enabled: !isSubmitting,
+                    minLines: 3,
                     maxLines: 3,
+                    maxLength: 500,
+                    textCapitalization: TextCapitalization.sentences,
                     decoration: const InputDecoration(
                       labelText: 'Comment',
+                      hintText: 'Share what you thought about the movie',
                       alignLabelWithHint: true,
                     ),
                   ),
                 ],
               ),
+              actionsAlignment: MainAxisAlignment.end,
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
+                  onPressed: isSubmitting
+                      ? null
+                      : () => Navigator.pop(dialogContext),
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
-                  onPressed: () async {
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                    setDialogState(() {
+                      isSubmitting = true;
+                    });
                     final ok = await provider.submitReview(
                       movie.id,
                       selectedRating,
-                      controller.text,
+                      controller.text.trim(),
                     );
                     if (!dialogContext.mounted) return;
                     Navigator.pop(dialogContext);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          ok
-                              ? 'Review submitted.'
-                              : provider.errorMessage ??
-                                  'Could not submit review.',
-                        ),
-                      ),
-                    );
+                    if (!pageContext.mounted) return;
+                    if (ok) {
+                      AppNotification.showSuccess(
+                        pageContext,
+                        'Review submitted.',
+                      );
+                    } else {
+                      AppNotification.showError(
+                        pageContext,
+                        provider.errorMessage ?? 'Could not submit review.',
+                      );
+                    }
                   },
-                  child: const Text('Submit'),
+                  child: isSubmitting
+                      ? const SizedBox.square(
+                          dimension: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Submit'),
                 ),
               ],
             );
@@ -325,5 +367,6 @@ class _ReviewSection extends StatelessWidget {
         );
       },
     );
+    controller.dispose();
   }
 }

@@ -19,29 +19,53 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
 
   @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
 
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
+          padding: EdgeInsets.fromLTRB(
+            24,
+            24,
+            24,
+            MediaQuery.viewInsetsOf(context).bottom + 24,
+          ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
+              child: Form(
+                key: _formKey,
+                child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 60),
-                Icon(Icons.movie, size: 80, color: AppColors.primary),
+                const SizedBox(height: 36),
+                Container(
+                  width: 76,
+                  height: 76,
+                  margin: const EdgeInsets.symmetric(horizontal: 160),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryContainer,
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  child: const Icon(Icons.local_movies_rounded, size: 38, color: AppColors.primary),
+                ),
                 const SizedBox(height: 24),
                 Text(
-                  'Welcome Back',
-                  style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 32),
+                  'Chào mừng trở lại',
+                  style: Theme.of(context).textTheme.headlineLarge,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Sign in to book your favorite movies',
+                  'Đăng nhập để chọn phim và đặt ghế yêu thích',
                   style: Theme.of(context).textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
@@ -50,21 +74,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   controller: _emailController,
                   decoration: const InputDecoration(
                     labelText: 'Email',
-                    prefixIcon: Icon(Icons.email),
-                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.email_outlined),
                   ),
-                  validator: (value) => value!.isEmpty ? 'Please enter email' : null,
+                  validator: (value) => value == null || value.isEmpty ? 'Vui lòng nhập email' : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: true,
                   decoration: const InputDecoration(
-                    labelText: 'Password',
-                    prefixIcon: Icon(Icons.lock),
-                    border: OutlineInputBorder(),
+                    labelText: 'Mật khẩu',
+                    prefixIcon: Icon(Icons.lock_outline_rounded),
                   ),
-                  validator: (value) => value!.isEmpty ? 'Please enter password' : null,
+                  validator: (value) => value == null || value.isEmpty ? 'Vui lòng nhập mật khẩu' : null,
                 ),
                 const SizedBox(height: 24),
                 if (authProvider.state == AuthState.error)
@@ -95,16 +117,18 @@ class _LoginScreenState extends State<LoginScreen> {
                         },
                   child: authProvider.state == AuthState.loading
                       ? const SpinKitThreeBounce(color: Colors.white, size: 20)
-                      : const Text('Sign In', style: TextStyle(fontSize: 16)),
+                      : const Text('Đăng nhập', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                 ),
                 const SizedBox(height: 24),
                 TextButton(
                   onPressed: () {
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen()));
                   },
-                  child: const Text('Don\'t have an account? Sign up'),
+                  child: const Text('Chưa có tài khoản? Đăng ký ngay'),
                 ),
               ],
+            ),
+              ),
             ),
           ),
         ),

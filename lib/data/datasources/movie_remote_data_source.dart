@@ -3,17 +3,32 @@ import '../../core/constants/api_constants.dart';
 import '../../core/error/exceptions.dart';
 import '../../core/network/dio_client.dart';
 import '../models/movie_model.dart';
+import '../models/movie_discovery_model.dart';
 
 abstract class MovieRemoteDataSource {
   Future<List<MovieModel>> getNowPlayingMovies();
   Future<List<MovieModel>> getUpcomingMovies();
   Future<MovieModel> getMovieDetails(String id);
+  Future<MovieDiscoveryModel> getDiscovery();
 }
 
 class MovieRemoteDataSourceImpl implements MovieRemoteDataSource {
   final DioClient client;
 
   MovieRemoteDataSourceImpl(this.client);
+
+  @override
+  Future<MovieDiscoveryModel> getDiscovery() async {
+    try {
+      final response = await client.get('${ApiConstants.movies}/discovery');
+      if (response.statusCode == 200) {
+        return MovieDiscoveryModel.fromJson(response.data);
+      }
+      throw ServerException('Failed to load movie discovery');
+    } on DioException catch (e) {
+      throw ServerException(e.message ?? 'Unknown error');
+    }
+  }
 
   @override
   Future<List<MovieModel>> getNowPlayingMovies() async {
