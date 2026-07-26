@@ -3,14 +3,14 @@ import 'package:provider/provider.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../domain/entities/movie.dart';
 import '../../providers/cinema_provider.dart';
+import '../../providers/movie_provider.dart';
 import '../seat/seat_selection_screen.dart';
 
 class CinemaSelectionScreen extends StatefulWidget {
-  final Movie movie;
+  final String movieId;
 
-  const CinemaSelectionScreen({super.key, required this.movie});
+  const CinemaSelectionScreen({super.key, required this.movieId});
 
   @override
   State<CinemaSelectionScreen> createState() => _CinemaSelectionScreenState();
@@ -22,8 +22,9 @@ class _CinemaSelectionScreenState extends State<CinemaSelectionScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<CinemaProvider>();
+      context.read<MovieProvider>().fetchMovieDetails(widget.movieId);
       provider.fetchCinemas().then((_) {
-        provider.fetchShowtimes(widget.movie.id);
+        provider.fetchShowtimes(widget.movieId);
       });
     });
   }
@@ -31,11 +32,13 @@ class _CinemaSelectionScreenState extends State<CinemaSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<CinemaProvider>();
+    final movieProvider = context.watch<MovieProvider>();
+    final movie = movieProvider.selectedMovie;
     final dates = List.generate(7, (index) => DateTime.now().add(Duration(days: index)));
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.movie.title),
+        title: Text(movie?.title ?? 'Select showtime'),
       ),
       body: provider.state == CinemaState.loading && provider.cinemas.isEmpty
           ? const Center(child: SpinKitFadingCircle(color: AppColors.primary))
@@ -55,7 +58,7 @@ class _CinemaSelectionScreenState extends State<CinemaSelectionScreen> {
                           final isSelected = provider.selectedDate.day == date.day && 
                                              provider.selectedDate.month == date.month;
                           return GestureDetector(
-                            onTap: () => provider.selectDate(date, widget.movie.id),
+                            onTap: () => provider.selectDate(date, widget.movieId),
                             child: Container(
                               width: 60,
                               margin: const EdgeInsets.only(right: 12),
@@ -110,7 +113,12 @@ class _CinemaSelectionScreenState extends State<CinemaSelectionScreen> {
                                 return ExpansionTile(
                                   initiallyExpanded: provider.selectedCinema?.id == cinema.id,
                                   onExpansionChanged: (expanded) {
-                                    if (expanded) provider.selectCinema(cinema, widget.movie.id);
+                                    if (expanded) {
+                                      provider.selectCinema(
+                                        cinema,
+                                        widget.movieId,
+                                      );
+                                    }
                                   },
                                   title: Text(cinema.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                                   subtitle: Text(cinema.address, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
@@ -131,7 +139,12 @@ class _CinemaSelectionScreenState extends State<CinemaSelectionScreen> {
                                               onTap: () {
                                                 Navigator.push(
                                                   context,
-                                                  MaterialPageRoute(builder: (_) => SeatSelectionScreen(showtime: st)),
+                                                  MaterialPageRoute(
+                                                    builder: (_) =>
+                                                        SeatSelectionScreen(
+                                                      showtimeId: st.id,
+                                                    ),
+                                                  ),
                                                 );
                                               },
                                               child: Container(

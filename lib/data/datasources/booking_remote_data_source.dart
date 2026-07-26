@@ -8,6 +8,8 @@ import '../models/concession_model.dart';
 import '../models/loyalty_wallet_model.dart';
 
 abstract class BookingRemoteDataSource {
+  Future<BookingModel> getBookingById(String id);
+  Future<String> createPaymentUrl(String bookingId);
   Future<List<SeatModel>> getSeats(String showtimeId);
   Future<List<ConcessionModel>> getConcessions();
   Future<LoyaltyWalletModel> getLoyaltyWallet();
@@ -31,6 +33,39 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   final DioClient client;
 
   BookingRemoteDataSourceImpl(this.client);
+
+  @override
+  Future<BookingModel> getBookingById(String id) async {
+    try {
+      final response = await client.get('${ApiConstants.bookings}/$id');
+      if (response.statusCode == 200) {
+        return BookingModel.fromJson(response.data);
+      }
+      throw ServerException('Failed to load booking');
+    } on DioException catch (error) {
+      throw ServerException(error.message ?? 'Unknown error');
+    }
+  }
+
+  @override
+  Future<String> createPaymentUrl(String bookingId) async {
+    try {
+      final response = await client.post(
+        '${ApiConstants.payments}/create-url',
+        data: {'bookingId': bookingId},
+      );
+      final data = response.data;
+      final url = data is Map
+          ? data['url']?.toString() ?? data['Url']?.toString()
+          : data?.toString();
+      if (url == null || url.isEmpty) {
+        throw ServerException('Payment URL was not returned by the server');
+      }
+      return url;
+    } on DioException catch (error) {
+      throw ServerException(error.message ?? 'Unknown error');
+    }
+  }
 
   @override
   Future<List<SeatModel>> getSeats(String showtimeId) async {

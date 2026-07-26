@@ -8,14 +8,16 @@ enum CinemaState { initial, loading, success, error }
 class CinemaProvider extends ChangeNotifier {
   final GetCinemasUseCase _getCinemas;
   final GetShowtimesUseCase _getShowtimes;
+  final GetShowtimeByIdUseCase _getShowtimeById;
 
-  CinemaProvider(this._getCinemas, this._getShowtimes);
+  CinemaProvider(this._getCinemas, this._getShowtimes, this._getShowtimeById);
 
   CinemaState state = CinemaState.initial;
   String? errorMessage;
 
   List<Cinema> cinemas = [];
   List<Showtime> showtimes = [];
+  Showtime? selectedShowtime;
 
   Cinema? selectedCinema;
   DateTime selectedDate = DateTime.now();
@@ -35,6 +37,22 @@ class CinemaProvider extends ChangeNotifier {
     } catch (e) {
       state = CinemaState.error;
       errorMessage = e.toString();
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchShowtimeById(String id) async {
+    try {
+      state = CinemaState.loading;
+      errorMessage = null;
+      selectedShowtime = null;
+      notifyListeners();
+      selectedShowtime = await _getShowtimeById(id);
+      state = CinemaState.success;
+      notifyListeners();
+    } catch (error) {
+      state = CinemaState.error;
+      errorMessage = error.toString();
       notifyListeners();
     }
   }

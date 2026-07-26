@@ -47,6 +47,26 @@ class CreateBookingUseCase {
   }
 }
 
+class GetBookingByIdUseCase {
+  GetBookingByIdUseCase(this._repository);
+
+  final BookingRepository _repository;
+
+  Future<Booking> call(String id) {
+    return _repository.getBookingById(id);
+  }
+}
+
+class CreatePaymentUrlUseCase {
+  CreatePaymentUrlUseCase(this._repository);
+
+  final BookingRepository _repository;
+
+  Future<String> call(String bookingId) {
+    return _repository.createPaymentUrl(bookingId);
+  }
+}
+
 class QuoteBookingUseCase {
   final BookingRepository _repository;
 

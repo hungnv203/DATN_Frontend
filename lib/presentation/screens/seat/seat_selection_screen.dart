@@ -5,14 +5,14 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../domain/entities/concession.dart';
-import '../../../domain/entities/showtime.dart';
 import '../../providers/booking_provider.dart';
+import '../../providers/cinema_provider.dart';
 import '../payment/payment_screen.dart';
 
 class SeatSelectionScreen extends StatefulWidget {
-  final Showtime showtime;
+  final String showtimeId;
 
-  const SeatSelectionScreen({super.key, required this.showtime});
+  const SeatSelectionScreen({super.key, required this.showtimeId});
 
   @override
   State<SeatSelectionScreen> createState() => _SeatSelectionScreenState();
@@ -25,8 +25,13 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<BookingProvider>().fetchBookingOptions(widget.showtime.id);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final cinemaProvider = context.read<CinemaProvider>();
+      await cinemaProvider.fetchShowtimeById(widget.showtimeId);
+      if (!mounted || cinemaProvider.selectedShowtime == null) return;
+      await context
+          .read<BookingProvider>()
+          .fetchBookingOptions(widget.showtimeId);
     });
   }
 
@@ -37,7 +42,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     super.dispose();
   }
 
-  Future<void> _showBookingExtras() async {
+  Future<void> _showBookingExtras(String showtimeId) async {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -91,7 +96,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                     if (currentProvider.concessions.isNotEmpty)
                       _ConcessionSection(
                         provider: currentProvider,
-                        showtimeId: widget.showtime.id,
+                        showtimeId: showtimeId,
                       ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
@@ -100,7 +105,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                         promotionController: _promotionController,
                         pointsController: _pointsController,
                         onApply: () => currentProvider
-                            .quoteCurrentSelection(widget.showtime.id),
+                            .quoteCurrentSelection(showtimeId),
                       ),
                     ),
                   ],
@@ -116,6 +121,23 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<BookingProvider>();
+    final cinemaProvider = context.watch<CinemaProvider>();
+    final showtime = cinemaProvider.selectedShowtime;
+
+    if (cinemaProvider.state == CinemaState.loading && showtime == null) {
+      return const Scaffold(
+        body: Center(child: SpinKitFadingCircle(color: AppColors.primary)),
+      );
+    }
+
+    if (showtime == null) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: Center(
+          child: Text(cinemaProvider.errorMessage ?? 'Showtime not found'),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Select Seats')),
@@ -172,7 +194,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                               onTap: () {
                                 provider.toggleSeatSelection(seat);
                                 provider.quoteCurrentSelection(
-                                    widget.showtime.id);
+                                  showtime.id,
+                                );
                               },
                               child: Container(
                                 decoration: BoxDecoration(
@@ -211,7 +234,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                     children: [
                       _BookingExtrasButton(
                         provider: provider,
-                        onPressed: _showBookingExtras,
+                        onPressed: () => _showBookingExtras(showtime.id),
                       ),
                       const SizedBox(height: 10),
                       Row(
@@ -230,10 +253,11 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                                   fit: BoxFit.scaleDown,
                                   alignment: Alignment.centerLeft,
                                   child: Text(
-                                    _formatCurrency(provider.currentQuote
-                                            ?.totalPrice ??
-                                        provider.getTotalPrice(
-                                            widget.showtime.basePrice)),
+                                    provider.currentQuote == null
+                                        ? 'Waiting for server quote'
+                                        : _formatCurrency(
+                                            provider.currentQuote!.totalPrice,
+                                          ),
                                     style: const TextStyle(
                                         fontSize: 24,
                                         fontWeight: FontWeight.bold,
@@ -257,11 +281,12 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                             width: 118,
                             height: 50,
                             child: ElevatedButton(
-                              onPressed: provider.selectedSeats.isEmpty
+                              onPressed: provider.selectedSeats.isEmpty ||
+                                      provider.currentQuote == null
                                   ? null
                                   : () async {
                                       final success = await provider
-                                          .bookTickets(widget.showtime.id);
+                                          .bookTickets(showtime.id);
                                       if (!context.mounted) return;
 
                                       if (success) {
@@ -277,8 +302,9 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                                         final successPay = await Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (_) =>
-                                                PaymentScreen(booking: booking),
+                                            builder: (_) => PaymentScreen(
+                                              bookingId: booking.id,
+                                            ),
                                           ),
                                         );
                                         if (!context.mounted) return;

@@ -17,4 +17,9 @@ class CinemaRepositoryImpl implements CinemaRepository {
   Future<List<Showtime>> getShowtimes(String movieId, String date) async {
     return await remoteDataSource.getShowtimes(movieId, date);
   }
+
+  @override
+  Future<Showtime> getShowtimeById(String id) {
+    return remoteDataSource.getShowtimeById(id);
+  }
 }

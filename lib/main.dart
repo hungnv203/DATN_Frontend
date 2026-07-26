@@ -59,12 +59,14 @@ void main() async {
   final getNowPlayingUseCase = GetNowPlayingMoviesUseCase(movieRepository);
   final getUpcomingUseCase = GetUpcomingMoviesUseCase(movieRepository);
   final getMovieDiscoveryUseCase = GetMovieDiscoveryUseCase(movieRepository);
+  final getMovieDetailsUseCase = GetMovieDetailsUseCase(movieRepository);
 
   // Cinema Dependencies
   final cinemaRemoteDataSource = CinemaRemoteDataSourceImpl(dioClient);
   final cinemaRepository = CinemaRepositoryImpl(cinemaRemoteDataSource);
   final getCinemasUseCase = GetCinemasUseCase(cinemaRepository);
   final getShowtimesUseCase = GetShowtimesUseCase(cinemaRepository);
+  final getShowtimeByIdUseCase = GetShowtimeByIdUseCase(cinemaRepository);
 
   // Booking Dependencies
   final bookingRemoteDataSource = BookingRemoteDataSourceImpl(dioClient);
@@ -74,6 +76,8 @@ void main() async {
   final createBookingUseCase = CreateBookingUseCase(bookingRepository);
   final quoteBookingUseCase = QuoteBookingUseCase(bookingRepository);
   final getLoyaltyWalletUseCase = GetLoyaltyWalletUseCase(bookingRepository);
+  final getBookingByIdUseCase = GetBookingByIdUseCase(bookingRepository);
+  final createPaymentUrlUseCase = CreatePaymentUrlUseCase(bookingRepository);
 
   // Ticket Dependencies
   final ticketRemoteDataSource = TicketRemoteDataSourceImpl(dioClient);
@@ -102,10 +106,15 @@ void main() async {
                 getNowPlayingUseCase,
                 getUpcomingUseCase,
                 getMovieDiscoveryUseCase,
+                getMovieDetailsUseCase,
               ),
         ),
         ChangeNotifierProvider(
-          create: (_) => CinemaProvider(getCinemasUseCase, getShowtimesUseCase),
+          create: (_) => CinemaProvider(
+            getCinemasUseCase,
+            getShowtimesUseCase,
+            getShowtimeByIdUseCase,
+          ),
         ),
         ChangeNotifierProvider(
           create: (_) => BookingProvider(
@@ -114,6 +123,8 @@ void main() async {
             createBookingUseCase,
             quoteBookingUseCase,
             getLoyaltyWalletUseCase,
+            getBookingByIdUseCase,
+            createPaymentUrlUseCase,
           ),
         ),
         ChangeNotifierProvider(

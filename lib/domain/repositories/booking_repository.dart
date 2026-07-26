@@ -5,6 +5,8 @@ import '../entities/loyalty_wallet.dart';
 import '../entities/seat.dart';
 
 abstract class BookingRepository {
+  Future<Booking> getBookingById(String id);
+  Future<String> createPaymentUrl(String bookingId);
   Future<List<Seat>> getSeats(String showtimeId);
   Future<List<Concession>> getConcessions();
   Future<LoyaltyWallet> getLoyaltyWallet();

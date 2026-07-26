@@ -21,3 +21,13 @@ class GetShowtimesUseCase {
     return _repository.getShowtimes(movieId, date);
   }
 }
+
+class GetShowtimeByIdUseCase {
+  GetShowtimeByIdUseCase(this._repository);
+
+  final CinemaRepository _repository;
+
+  Future<Showtime> call(String id) {
+    return _repository.getShowtimeById(id);
+  }
+}

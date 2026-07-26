@@ -14,6 +14,8 @@ class BookingProvider extends ChangeNotifier {
   final CreateBookingUseCase _createBooking;
   final QuoteBookingUseCase _quoteBooking;
   final GetLoyaltyWalletUseCase _getLoyaltyWallet;
+  final GetBookingByIdUseCase _getBookingById;
+  final CreatePaymentUrlUseCase _createPaymentUrl;
 
   BookingProvider(
     this._getSeats,
@@ -21,6 +23,8 @@ class BookingProvider extends ChangeNotifier {
     this._createBooking,
     this._quoteBooking,
     this._getLoyaltyWallet,
+    this._getBookingById,
+    this._createPaymentUrl,
   );
 
   BookingState state = BookingState.initial;
@@ -35,6 +39,7 @@ class BookingProvider extends ChangeNotifier {
   LoyaltyWallet? loyaltyWallet;
   String promotionCode = '';
   int usedPoints = 0;
+  int _quoteRequestVersion = 0;
 
   Future<void> fetchBookingOptions(String showtimeId) async {
     try {
@@ -63,6 +68,34 @@ class BookingProvider extends ChangeNotifier {
 
   Future<void> fetchSeats(String showtimeId) async {
     await fetchBookingOptions(showtimeId);
+  }
+
+  Future<Booking?> fetchBookingById(String id) async {
+    try {
+      state = BookingState.loading;
+      errorMessage = null;
+      notifyListeners();
+      currentBooking = await _getBookingById(id);
+      state = BookingState.success;
+      notifyListeners();
+      return currentBooking;
+    } catch (error) {
+      state = BookingState.error;
+      errorMessage = error.toString();
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<String?> createPaymentUrl(String bookingId) async {
+    try {
+      errorMessage = null;
+      return await _createPaymentUrl(bookingId);
+    } catch (error) {
+      errorMessage = error.toString();
+      notifyListeners();
+      return null;
+    }
   }
 
   Future<void> loadLoyaltyWallet() async {
@@ -122,46 +155,39 @@ class BookingProvider extends ChangeNotifier {
   }
 
   Future<void> quoteCurrentSelection(String showtimeId) async {
+    final requestVersion = ++_quoteRequestVersion;
     if (selectedSeats.isEmpty) {
       currentQuote = null;
       notifyListeners();
       return;
     }
 
+    currentQuote = null;
+    errorMessage = null;
+    notifyListeners();
     try {
       final seatIds = selectedSeats.map((s) => s.id).toList();
-      currentQuote = await _quoteBooking(
+      final quote = await _quoteBooking(
         showtimeId,
         seatIds,
         selectedConcessions,
         promotionCode.isEmpty ? null : promotionCode,
         usedPoints,
       );
+      if (requestVersion != _quoteRequestVersion) return;
+      currentQuote = quote;
       errorMessage = null;
       notifyListeners();
     } catch (e) {
+      if (requestVersion != _quoteRequestVersion) return;
       currentQuote = null;
       errorMessage = e.toString();
       notifyListeners();
     }
   }
 
-  double getTotalPrice(double basePrice) {
-    return getSeatTotal(basePrice) + getConcessionTotal();
-  }
-
-  double getSeatTotal(double basePrice) {
-    return selectedSeats.length * basePrice;
-  }
-
-  double getConcessionTotal() {
-    return concessions.fold<double>(0, (total, concession) {
-      return total + (concession.price * getConcessionQuantity(concession.id));
-    });
-  }
-
   Future<bool> bookTickets(String showtimeId) async {
-    if (selectedSeats.isEmpty) return false;
+    if (selectedSeats.isEmpty || currentQuote == null) return false;
 
     try {
       state = BookingState.loading;

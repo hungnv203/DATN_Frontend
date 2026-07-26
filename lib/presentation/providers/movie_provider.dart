@@ -9,8 +9,14 @@ class MovieProvider extends ChangeNotifier {
   final GetNowPlayingMoviesUseCase _getNowPlaying;
   final GetUpcomingMoviesUseCase _getUpcoming;
   final GetMovieDiscoveryUseCase _getDiscovery;
+  final GetMovieDetailsUseCase _getMovieDetails;
 
-  MovieProvider(this._getNowPlaying, this._getUpcoming, this._getDiscovery);
+  MovieProvider(
+    this._getNowPlaying,
+    this._getUpcoming,
+    this._getDiscovery,
+    this._getMovieDetails,
+  );
 
   MovieState state = MovieState.initial;
   String? errorMessage;
@@ -18,6 +24,7 @@ class MovieProvider extends ChangeNotifier {
   List<Movie> nowPlayingMovies = [];
   List<Movie> upcomingMovies = [];
   MovieDiscovery? discovery;
+  Movie? selectedMovie;
 
   Future<void> fetchMovies() async {
     try {
@@ -41,6 +48,22 @@ class MovieProvider extends ChangeNotifier {
     } catch (e) {
       state = MovieState.error;
       errorMessage = e.toString();
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchMovieDetails(String id) async {
+    try {
+      state = MovieState.loading;
+      errorMessage = null;
+      selectedMovie = null;
+      notifyListeners();
+      selectedMovie = await _getMovieDetails(id);
+      state = MovieState.success;
+      notifyListeners();
+    } catch (error) {
+      state = MovieState.error;
+      errorMessage = error.toString();
       notifyListeners();
     }
   }

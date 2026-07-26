@@ -8,6 +8,7 @@ import '../models/showtime_model.dart';
 abstract class CinemaRemoteDataSource {
   Future<List<CinemaModel>> getCinemas();
   Future<List<ShowtimeModel>> getShowtimes(String movieId, String date);
+  Future<ShowtimeModel> getShowtimeById(String id);
 }
 
 class CinemaRemoteDataSourceImpl implements CinemaRemoteDataSource {
@@ -44,6 +45,19 @@ class CinemaRemoteDataSourceImpl implements CinemaRemoteDataSource {
       }
     } on DioException catch (e) {
       throw ServerException(e.message ?? 'Unknown error');
+    }
+  }
+
+  @override
+  Future<ShowtimeModel> getShowtimeById(String id) async {
+    try {
+      final response = await client.get('${ApiConstants.showtimes}/$id');
+      if (response.statusCode == 200) {
+        return ShowtimeModel.fromJson(response.data);
+      }
+      throw ServerException('Failed to load showtime');
+    } on DioException catch (error) {
+      throw ServerException(error.message ?? 'Unknown error');
     }
   }
 }

@@ -12,6 +12,16 @@ class BookingRepositoryImpl implements BookingRepository {
   BookingRepositoryImpl(this.remoteDataSource);
 
   @override
+  Future<Booking> getBookingById(String id) {
+    return remoteDataSource.getBookingById(id);
+  }
+
+  @override
+  Future<String> createPaymentUrl(String bookingId) {
+    return remoteDataSource.createPaymentUrl(bookingId);
+  }
+
+  @override
   Future<List<Seat>> getSeats(String showtimeId) async {
     return await remoteDataSource.getSeats(showtimeId);
   }

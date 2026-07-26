@@ -4,13 +4,14 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../domain/entities/movie.dart';
+import '../../providers/movie_provider.dart';
 import '../../providers/review_provider.dart';
 import '../cinema/cinema_selection_screen.dart';
 
 class MovieDetailScreen extends StatefulWidget {
-  final Movie movie;
+  final String movieId;
 
-  const MovieDetailScreen({super.key, required this.movie});
+  const MovieDetailScreen({super.key, required this.movieId});
 
   @override
   State<MovieDetailScreen> createState() => _MovieDetailScreenState();
@@ -21,13 +22,31 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ReviewProvider>().loadMovieReviews(widget.movie.id);
+      context.read<MovieProvider>().fetchMovieDetails(widget.movieId);
+      context.read<ReviewProvider>().loadMovieReviews(widget.movieId);
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final reviewProvider = context.watch<ReviewProvider>();
+    final movieProvider = context.watch<MovieProvider>();
+    final movie = movieProvider.selectedMovie;
+
+    if (movieProvider.state == MovieState.loading && movie == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (movie == null) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: Center(
+          child: Text(movieProvider.errorMessage ?? 'Movie not found'),
+        ),
+      );
+    }
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -45,8 +64,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  widget.movie.posterUrl.isNotEmpty
-                      ? Image.network(widget.movie.posterUrl, fit: BoxFit.cover)
+                  movie.posterUrl.isNotEmpty
+                      ? Image.network(movie.posterUrl, fit: BoxFit.cover)
                       : Container(
                           color: Colors.grey.shade800,
                           child: const Icon(Icons.movie, size: 100),
@@ -72,7 +91,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.movie.title,
+                    movie.title,
                     style: Theme.of(context)
                         .textTheme
                         .displayLarge
@@ -81,11 +100,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      _buildTag(widget.movie.rating, Colors.orange),
+                      _buildTag(movie.rating, Colors.orange),
                       const SizedBox(width: 8),
-                      _buildTag('${widget.movie.duration} min', Colors.blueGrey),
+                      _buildTag('${movie.duration} min', Colors.blueGrey),
                       const SizedBox(width: 8),
-                      _buildTag(widget.movie.language, Colors.deepPurple),
+                      _buildTag(movie.language, Colors.deepPurple),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -95,13 +114,13 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    widget.movie.description,
+                    movie.description,
                     style:
                         Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.5),
                   ),
                   const SizedBox(height: 28),
                   _ReviewSection(
-                    movie: widget.movie,
+                    movie: movie,
                     provider: reviewProvider,
                   ),
                   const SizedBox(height: 40),
@@ -119,7 +138,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => CinemaSelectionScreen(movie: widget.movie),
+                  builder: (_) => CinemaSelectionScreen(movieId: movie.id),
                 ),
               );
             },

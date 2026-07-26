@@ -31,3 +31,13 @@ class GetMovieDiscoveryUseCase {
     return _repository.getDiscovery();
   }
 }
+
+class GetMovieDetailsUseCase {
+  GetMovieDetailsUseCase(this._repository);
+
+  final MovieRepository _repository;
+
+  Future<Movie> call(String id) {
+    return _repository.getMovieDetails(id);
+  }
+}

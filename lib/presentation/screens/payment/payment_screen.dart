@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
-import 'package:provider/provider.dart';
-import '../../../core/network/dio_client.dart';
-import '../../../core/constants/api_constants.dart';
-import '../../../domain/entities/booking.dart';
+import '../../providers/booking_provider.dart';
 
 class PaymentScreen extends StatefulWidget {
-  final Booking booking;
+  final String bookingId;
 
-  const PaymentScreen({super.key, required this.booking});
+  const PaymentScreen({super.key, required this.bookingId});
 
   @override
   State<PaymentScreen> createState() => _PaymentScreenState();
@@ -25,7 +23,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   void initState() {
     super.initState();
     _initWebView();
-    _createPaymentUrl();
+    _loadBookingAndCreatePayment();
   }
 
   void _initWebView() {
@@ -33,43 +31,42 @@ class _PaymentScreenState extends State<PaymentScreen> {
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
         NavigationDelegate(
-          onPageStarted: (String url) {
-            setState(() => _isLoading = true);
+          onPageStarted: (_) {
+            if (mounted) setState(() => _isLoading = true);
           },
-          onPageFinished: (String url) {
-            setState(() => _isLoading = false);
+          onPageFinished: (_) {
+            if (mounted) setState(() => _isLoading = false);
           },
-          onWebResourceError: (WebResourceError error) {
-            if (error.isForMainFrame ?? true) {
+          onWebResourceError: (error) {
+            if ((error.isForMainFrame ?? true) && mounted) {
               setState(() {
                 _isLoading = false;
                 _errorMessage =
-                    'Khong tai duoc trang thanh toan: ${error.description} '
+                    'Unable to load payment page: ${error.description} '
                     '(code: ${error.errorCode})';
               });
             }
           },
-          onSslAuthError: (SslAuthError error) {
+          onSslAuthError: (error) {
             final platformError = error.platform;
             final url =
                 platformError is AndroidSslAuthError ? platformError.url : '';
             final host = Uri.tryParse(url)?.host ?? '';
-            final isVnPaySandbox = host == 'sandbox.vnpayment.vn';
-
-            if (isVnPaySandbox) {
+            if (host == 'sandbox.vnpayment.vn') {
               error.proceed();
               return;
             }
 
             error.cancel();
-            setState(() {
-              _isLoading = false;
-              _errorMessage =
-                  'SSL cua trang thanh toan khong hop le nen WebView da chan.';
-            });
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+                _errorMessage =
+                    'The payment page was blocked because SSL is invalid.';
+              });
+            }
           },
-          onNavigationRequest: (NavigationRequest request) {
-            // Intercept return url from VNPAY
+          onNavigationRequest: (request) {
             if (request.url.contains('payment-result')) {
               _handlePaymentResult(request.url);
               return NavigationDecision.prevent;
@@ -80,47 +77,39 @@ class _PaymentScreenState extends State<PaymentScreen> {
       );
   }
 
-  Future<void> _createPaymentUrl() async {
-    try {
-      final client = Provider.of<DioClient>(context, listen: false);
-      final response = await client.post(
-        '${ApiConstants.payments}/create-url',
-        data: {'bookingId': widget.booking.id},
-      );
-
-      final data = response.data;
-      String? url;
-
-      if (data is Map) {
-        url = data['url']?.toString() ?? data['Url']?.toString();
-      } else if (data is String) {
-        url = data; // In case the backend returned a raw string
-      }
-
+  Future<void> _loadBookingAndCreatePayment() async {
+    final provider = context.read<BookingProvider>();
+    final booking = await provider.fetchBookingById(widget.bookingId);
+    if (!mounted) return;
+    if (booking == null) {
       setState(() {
-        _paymentUrl = url;
+        _isLoading = false;
+        _errorMessage =
+            provider.errorMessage ?? 'Booking not found or inaccessible.';
       });
-
-      if (_paymentUrl != null && _paymentUrl!.isNotEmpty) {
-        _controller.loadRequest(Uri.parse(_paymentUrl!));
-      } else {
-        setState(() {
-          _errorMessage =
-              'Backend trả về thành công nhưng không tìm thấy link VNPAY. Dữ liệu: $data';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Lỗi khi gọi API thanh toán: ${e.toString()}';
-      });
+      return;
     }
+
+    final url = await provider.createPaymentUrl(booking.id);
+    if (!mounted) return;
+    if (url == null) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage =
+            provider.errorMessage ?? 'Unable to create payment URL.';
+      });
+      return;
+    }
+
+    setState(() {
+      _paymentUrl = url;
+    });
+    await _controller.loadRequest(Uri.parse(url));
   }
 
   void _handlePaymentResult(String url) {
     final uri = Uri.parse(url);
     final success = uri.queryParameters['success']?.toLowerCase() == 'true';
-
-    // Đóng màn hình thanh toán và trả về kết quả
     Navigator.pop(context, success);
   }
 
@@ -128,16 +117,19 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Thanh toán VNPAY'),
+        title: const Text('VNPAY Payment'),
         leading: IconButton(
           icon: const Icon(Icons.close),
-          onPressed: () => Navigator.pop(context, false), // Cancel payment
+          onPressed: () => Navigator.pop(context, false),
         ),
       ),
       body: _errorMessage != null
           ? Center(
-              child: Text(_errorMessage!,
-                  style: const TextStyle(color: Colors.red)))
+              child: Text(
+                _errorMessage!,
+                style: const TextStyle(color: Colors.red),
+              ),
+            )
           : _paymentUrl == null
               ? const Center(child: CircularProgressIndicator())
               : Stack(
