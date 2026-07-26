@@ -175,9 +175,20 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                           selectedSeatIds: provider.selectedSeats
                               .map((seat) => seat.id)
                               .toSet(),
-                          onSeatPressed: (seat) {
-                            provider.toggleSeatSelection(seat);
-                            provider.quoteCurrentSelection(showtime.id);
+                          onSeatPressed: (seat) async {
+                            final held = await provider.toggleSeatSelection(
+                              seat,
+                              showtime.id,
+                            );
+                            if (held) {
+                              await provider.quoteCurrentSelection(showtime.id);
+                            } else if (context.mounted &&
+                                provider.errorMessage != null) {
+                              AppNotification.showError(
+                                context,
+                                provider.errorMessage!,
+                              );
+                            }
                           },
                         ),
                 ),
@@ -193,6 +204,22 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      if (provider.hasActiveHold) ...[
+                        Semantics(
+                          liveRegion: true,
+                          label: 'Seat hold time remaining',
+                          child: Text(
+                            'Seats held for '
+                            '${provider.holdRemaining.inMinutes.toString().padLeft(2, '0')}:'
+                            '${(provider.holdRemaining.inSeconds % 60).toString().padLeft(2, '0')}',
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
                       _BookingExtrasButton(
                         provider: provider,
                         onPressed: () => _showBookingExtras(showtime.id),
@@ -243,7 +270,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                             height: 50,
                             child: ElevatedButton(
                               onPressed: provider.selectedSeats.isEmpty ||
-                                      provider.currentQuote == null
+                                      provider.currentQuote == null ||
+                                      provider.isUpdatingHold
                                   ? null
                                   : () async {
                                       final success = await provider

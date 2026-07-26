@@ -3,6 +3,7 @@ import '../../domain/entities/booking_quote.dart';
 import '../../domain/entities/concession.dart';
 import '../../domain/entities/loyalty_wallet.dart';
 import '../../domain/entities/seat.dart';
+import '../../domain/entities/seat_hold_session.dart';
 import '../../domain/repositories/booking_repository.dart';
 import '../datasources/booking_remote_data_source.dart';
 
@@ -34,6 +35,19 @@ class BookingRepositoryImpl implements BookingRepository {
   @override
   Future<LoyaltyWallet> getLoyaltyWallet() async {
     return await remoteDataSource.getLoyaltyWallet();
+  }
+
+  @override
+  Future<SeatHoldSession> holdSeats(
+    String showtimeId,
+    List<String> seatIds, {
+    String? holdSessionId,
+  }) {
+    return remoteDataSource.holdSeats(
+      showtimeId,
+      seatIds,
+      holdSessionId: holdSessionId,
+    );
   }
 
   @override

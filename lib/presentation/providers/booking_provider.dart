@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../../domain/entities/booking.dart';
 import '../../domain/entities/booking_quote.dart';
 import '../../domain/entities/concession.dart';
 import '../../domain/entities/loyalty_wallet.dart';
 import '../../domain/entities/seat.dart';
+import '../../domain/entities/seat_hold_session.dart';
 import '../../domain/usecases/booking_usecases.dart';
 
 enum BookingState { initial, loading, success, error }
@@ -11,6 +14,7 @@ enum BookingState { initial, loading, success, error }
 class BookingProvider extends ChangeNotifier {
   final GetSeatsUseCase _getSeats;
   final GetConcessionsUseCase _getConcessions;
+  final HoldSeatsUseCase _holdSeats;
   final CreateBookingUseCase _createBooking;
   final QuoteBookingUseCase _quoteBooking;
   final GetLoyaltyWalletUseCase _getLoyaltyWallet;
@@ -20,6 +24,7 @@ class BookingProvider extends ChangeNotifier {
   BookingProvider(
     this._getSeats,
     this._getConcessions,
+    this._holdSeats,
     this._createBooking,
     this._quoteBooking,
     this._getLoyaltyWallet,
@@ -40,6 +45,16 @@ class BookingProvider extends ChangeNotifier {
   String promotionCode = '';
   int usedPoints = 0;
   int _quoteRequestVersion = 0;
+  bool _isUpdatingHold = false;
+  SeatHoldSession? _holdSession;
+  Duration _holdRemaining = Duration.zero;
+  Timer? _holdTimer;
+
+  bool get isUpdatingHold => _isUpdatingHold;
+  SeatHoldSession? get holdSession => _holdSession;
+  Duration get holdRemaining => _holdRemaining;
+  bool get hasActiveHold =>
+      _holdSession?.isActive == true && _holdRemaining > Duration.zero;
 
   Future<void> fetchBookingOptions(String showtimeId) async {
     try {
@@ -108,15 +123,83 @@ class BookingProvider extends ChangeNotifier {
     }
   }
 
-  void toggleSeatSelection(Seat seat) {
-    if (!seat.isAvailable) return;
+  Future<bool> toggleSeatSelection(Seat seat, String showtimeId) async {
+    if (!seat.isAvailable || _isUpdatingHold) return false;
 
+    _isUpdatingHold = true;
+    final previousSelectedSeats = List<Seat>.from(selectedSeats);
     if (selectedSeats.contains(seat)) {
       selectedSeats.remove(seat);
     } else {
       selectedSeats.add(seat);
     }
     notifyListeners();
+
+    try {
+      final holdSession = await _holdSeats(
+        showtimeId,
+        selectedSeats.map((selectedSeat) => selectedSeat.id).toList(),
+        holdSessionId: _holdSession?.id,
+      );
+      _applyHoldSession(holdSession, showtimeId);
+      errorMessage = null;
+      _isUpdatingHold = false;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      errorMessage = error.toString();
+      selectedSeats = previousSelectedSeats;
+      currentQuote = null;
+      try {
+        seats = await _getSeats(showtimeId);
+      } catch (_) {
+        // Keep the original hold error for presentation.
+      }
+      _isUpdatingHold = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  void _applyHoldSession(SeatHoldSession session, String showtimeId) {
+    _holdTimer?.cancel();
+    if (!session.isActive || selectedSeats.isEmpty) {
+      _holdSession = null;
+      _holdRemaining = Duration.zero;
+      return;
+    }
+
+    _holdSession = session;
+    final expiresAt = session.expiresAt!;
+    final serverRemaining = expiresAt.difference(session.serverTime);
+    _holdRemaining =
+        serverRemaining.isNegative ? Duration.zero : serverRemaining;
+    _holdTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
+      if (_holdRemaining <= const Duration(seconds: 1)) {
+        _holdTimer?.cancel();
+        _holdSession = null;
+        _holdRemaining = Duration.zero;
+        selectedSeats.clear();
+        currentQuote = null;
+        notifyListeners();
+        try {
+          seats = await _getSeats(showtimeId);
+          notifyListeners();
+        } catch (_) {
+          // The next screen refresh will reconcile seat availability.
+        }
+        return;
+      }
+
+      _holdRemaining -= const Duration(seconds: 1);
+      notifyListeners();
+    });
+  }
+
+  @override
+  void dispose() {
+    _holdTimer?.cancel();
+    super.dispose();
   }
 
   void updatePromotionCode(String code) {
@@ -202,6 +285,9 @@ class BookingProvider extends ChangeNotifier {
         usedPoints,
       );
 
+      _holdTimer?.cancel();
+      _holdSession = null;
+      _holdRemaining = Duration.zero;
       state = BookingState.success;
       notifyListeners();
       return true;
