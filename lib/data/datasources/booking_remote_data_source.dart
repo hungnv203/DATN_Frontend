@@ -6,7 +6,6 @@ import '../models/booking_model.dart';
 import '../models/booking_quote_model.dart';
 import '../models/concession_model.dart';
 import '../models/loyalty_wallet_model.dart';
-import '../models/seat_hold_session_model.dart';
 
 abstract class BookingRemoteDataSource {
   Future<BookingModel> getBookingById(String id);
@@ -14,11 +13,6 @@ abstract class BookingRemoteDataSource {
   Future<List<SeatModel>> getSeats(String showtimeId);
   Future<List<ConcessionModel>> getConcessions();
   Future<LoyaltyWalletModel> getLoyaltyWallet();
-  Future<SeatHoldSessionModel> holdSeats(
-    String showtimeId,
-    List<String> seatIds, {
-    String? holdSessionId,
-  });
   Future<BookingQuoteModel> quoteBooking(
     String showtimeId,
     List<String> seatIds,
@@ -39,28 +33,6 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   final DioClient client;
 
   BookingRemoteDataSourceImpl(this.client);
-
-  @override
-  Future<SeatHoldSessionModel> holdSeats(
-    String showtimeId,
-    List<String> seatIds, {
-    String? holdSessionId,
-  }) async {
-    try {
-      final response = await client.post(
-        '${ApiConstants.bookings}/hold-seats',
-        data: {
-          'showtimeId': showtimeId,
-          'seatIds': seatIds,
-          if (holdSessionId != null && holdSessionId.isNotEmpty)
-            'holdSessionId': holdSessionId,
-        },
-      );
-      return SeatHoldSessionModel.fromJson(response.data);
-    } on DioException catch (error) {
-      throw ServerException(error.message ?? 'Unable to hold selected seats');
-    }
-  }
 
   @override
   Future<BookingModel> getBookingById(String id) async {
@@ -184,6 +156,16 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
     try {
       final selectedConcessions = _buildSelectedConcessions(concessions);
 
+      // 1. Hold seats first
+      await client.post(
+        '${ApiConstants.bookings}/hold-seats',
+        data: {
+          'showtimeId': showtimeId,
+          'seatIds': seatIds,
+        },
+      );
+
+      // 2. Create the booking submitting the seatIds
       final response = await client.post(
         ApiConstants.bookings,
         data: {

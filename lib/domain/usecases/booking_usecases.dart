@@ -3,7 +3,6 @@ import '../entities/booking_quote.dart';
 import '../entities/concession.dart';
 import '../entities/loyalty_wallet.dart';
 import '../entities/seat.dart';
-import '../entities/seat_hold_session.dart';
 import '../repositories/booking_repository.dart';
 
 class GetSeatsUseCase {
@@ -23,24 +22,6 @@ class GetConcessionsUseCase {
 
   Future<List<Concession>> call() {
     return _repository.getConcessions();
-  }
-}
-
-class HoldSeatsUseCase {
-  HoldSeatsUseCase(this._repository);
-
-  final BookingRepository _repository;
-
-  Future<SeatHoldSession> call(
-    String showtimeId,
-    List<String> seatIds, {
-    String? holdSessionId,
-  }) {
-    return _repository.holdSeats(
-      showtimeId,
-      seatIds,
-      holdSessionId: holdSessionId,
-    );
   }
 }
 

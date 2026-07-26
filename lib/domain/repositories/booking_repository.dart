@@ -3,7 +3,6 @@ import '../entities/booking_quote.dart';
 import '../entities/concession.dart';
 import '../entities/loyalty_wallet.dart';
 import '../entities/seat.dart';
-import '../entities/seat_hold_session.dart';
 
 abstract class BookingRepository {
   Future<Booking> getBookingById(String id);
@@ -11,11 +10,6 @@ abstract class BookingRepository {
   Future<List<Seat>> getSeats(String showtimeId);
   Future<List<Concession>> getConcessions();
   Future<LoyaltyWallet> getLoyaltyWallet();
-  Future<SeatHoldSession> holdSeats(
-    String showtimeId,
-    List<String> seatIds, {
-    String? holdSessionId,
-  });
   Future<BookingQuote> quoteBooking(
     String showtimeId,
     List<String> seatIds,

@@ -73,7 +73,6 @@ void main() async {
   final bookingRepository = BookingRepositoryImpl(bookingRemoteDataSource);
   final getSeatsUseCase = GetSeatsUseCase(bookingRepository);
   final getConcessionsUseCase = GetConcessionsUseCase(bookingRepository);
-  final holdSeatsUseCase = HoldSeatsUseCase(bookingRepository);
   final createBookingUseCase = CreateBookingUseCase(bookingRepository);
   final quoteBookingUseCase = QuoteBookingUseCase(bookingRepository);
   final getLoyaltyWalletUseCase = GetLoyaltyWalletUseCase(bookingRepository);
@@ -121,7 +120,6 @@ void main() async {
           create: (_) => BookingProvider(
             getSeatsUseCase,
             getConcessionsUseCase,
-            holdSeatsUseCase,
             createBookingUseCase,
             quoteBookingUseCase,
             getLoyaltyWalletUseCase,
