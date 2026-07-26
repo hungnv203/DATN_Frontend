@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../domain/entities/concession.dart';
+import '../../../domain/entities/seat.dart';
 import '../../providers/booking_provider.dart';
 import '../../providers/cinema_provider.dart';
 import '../payment/payment_screen.dart';
@@ -169,54 +170,14 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                 Expanded(
                   child: provider.seats.isEmpty
                       ? const Center(child: Text('No seats available'))
-                      : GridView.builder(
-                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 8,
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
-                          ),
-                          itemCount: provider.seats.length,
-                          itemBuilder: (context, index) {
-                            final seat = provider.seats[index];
-                            final isSelected =
-                                provider.selectedSeats.contains(seat);
-
-                            Color seatColor = AppColors.seatAvailable;
-                            if (!seat.isAvailable) {
-                              seatColor = AppColors.seatBooked;
-                            } else if (isSelected) {
-                              seatColor = AppColors.seatSelected;
-                            }
-
-                            return GestureDetector(
-                              onTap: () {
-                                provider.toggleSeatSelection(seat);
-                                provider.quoteCurrentSelection(
-                                  showtime.id,
-                                );
-                              },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: seatColor,
-                                  borderRadius: const BorderRadius.only(
-                                    topLeft: Radius.circular(8),
-                                    topRight: Radius.circular(8),
-                                    bottomLeft: Radius.circular(4),
-                                    bottomRight: Radius.circular(4),
-                                  ),
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  seat.label,
-                                  style: const TextStyle(
-                                      fontSize: 10,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            );
+                      : _SeatLayoutGrid(
+                          seats: provider.seats,
+                          selectedSeatIds: provider.selectedSeats
+                              .map((seat) => seat.id)
+                              .toSet(),
+                          onSeatPressed: (seat) {
+                            provider.toggleSeatSelection(seat);
+                            provider.quoteCurrentSelection(showtime.id);
                           },
                         ),
                 ),
@@ -347,6 +308,159 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                 ),
               ],
             ),
+    );
+  }
+}
+
+class _SeatLayoutGrid extends StatelessWidget {
+  const _SeatLayoutGrid({
+    required this.seats,
+    required this.selectedSeatIds,
+    required this.onSeatPressed,
+  });
+
+  final List<Seat> seats;
+  final Set<String> selectedSeatIds;
+  final ValueChanged<Seat> onSeatPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final seatsByRow = <String, Map<int, Seat>>{};
+    for (final seat in seats) {
+      seatsByRow
+          .putIfAbsent(seat.row, () => <int, Seat>{})[seat.number] = seat;
+    }
+
+    final rowLabels = seatsByRow.keys.toList()..sort();
+    final maxSeatNumber = seats.fold<int>(
+      0,
+      (maximum, seat) => seat.number > maximum ? seat.number : maximum,
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth - 48;
+        final calculatedExtent = maxSeatNumber == 0
+            ? 44.0
+            : (availableWidth / maxSeatNumber)
+                .clamp(34.0, 48.0)
+                .toDouble();
+
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.fromLTRB(12, 4, 16, 12),
+          child: SingleChildScrollView(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: rowLabels.map((rowLabel) {
+                  final rowSeats = seatsByRow[rowLabel]!;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 28,
+                          child: Text(
+                            rowLabel,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        for (var number = 1;
+                            number <= maxSeatNumber;
+                            number++)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 3),
+                            child: _SeatCell(
+                              seat: rowSeats[number],
+                              extent: calculatedExtent,
+                              isSelected: rowSeats[number] != null
+                                  && selectedSeatIds
+                                      .contains(rowSeats[number]!.id),
+                              onPressed: onSeatPressed,
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SeatCell extends StatelessWidget {
+  const _SeatCell({
+    required this.seat,
+    required this.extent,
+    required this.isSelected,
+    required this.onPressed,
+  });
+
+  final Seat? seat;
+  final double extent;
+  final bool isSelected;
+  final ValueChanged<Seat> onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    if (seat == null) {
+      return SizedBox(width: extent, height: extent);
+    }
+
+    final currentSeat = seat!;
+    final color = !currentSeat.isAvailable
+        ? AppColors.seatBooked
+        : isSelected
+            ? AppColors.seatSelected
+            : currentSeat.type == 'VIP'
+                ? Colors.amber.shade700
+                : currentSeat.type == 'Couple'
+                    ? Colors.pink.shade400
+                    : AppColors.seatAvailable;
+
+    return Semantics(
+      button: true,
+      enabled: currentSeat.isAvailable,
+      selected: isSelected,
+      label:
+          'Seat ${currentSeat.label}, ${currentSeat.type}, '
+          '${currentSeat.isAvailable ? 'available' : 'reserved'}',
+      child: InkWell(
+        onTap: currentSeat.isAvailable
+            ? () => onPressed(currentSeat)
+            : null,
+        borderRadius: BorderRadius.circular(7),
+        child: Container(
+          width: extent,
+          height: extent,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(8),
+              topRight: Radius.circular(8),
+              bottomLeft: Radius.circular(4),
+              bottomRight: Radius.circular(4),
+            ),
+          ),
+          child: Text(
+            '${currentSeat.number}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
