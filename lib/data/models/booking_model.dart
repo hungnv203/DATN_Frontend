@@ -10,6 +10,9 @@ class SeatModel extends Seat {
     required super.number,
     required super.type,
     super.isAvailable,
+    super.status,
+    super.heldByCurrentUser,
+    super.expiresAtUtc,
   });
 
   factory SeatModel.fromJson(Map<String, dynamic> json) {
@@ -20,6 +23,11 @@ class SeatModel extends Seat {
       number: json['seatNumber'] ?? json['number'] ?? 0,
       type: json['type'] ?? '',
       isAvailable: json['status'] == 'Available' || json['isAvailable'] == true,
+      status: json['status'] ?? 'Available',
+      heldByCurrentUser: json['heldByCurrentUser'] == true,
+      expiresAtUtc: json['expiresAtUtc'] == null
+          ? null
+          : DateTime.tryParse(json['expiresAtUtc'].toString()),
     );
   }
 }

@@ -51,7 +51,7 @@ class DioClient {
       );
       return response;
     } on DioException catch (e) {
-      throw ServerException(_handleDioError(e));
+      throw ServerException(_handleDioError(e), e.response?.statusCode);
     }
   }
 
@@ -70,7 +70,7 @@ class DioClient {
       );
       return response;
     } on DioException catch (e) {
-      throw ServerException(_handleDioError(e));
+      throw ServerException(_handleDioError(e), e.response?.statusCode);
     }
   }
 
@@ -89,7 +89,7 @@ class DioClient {
       );
       return response;
     } on DioException catch (e) {
-      throw ServerException(_handleDioError(e));
+      throw ServerException(_handleDioError(e), e.response?.statusCode);
     }
   }
 
@@ -108,7 +108,7 @@ class DioClient {
       );
       return response;
     } on DioException catch (e) {
-      throw ServerException(_handleDioError(e));
+      throw ServerException(_handleDioError(e), e.response?.statusCode);
     }
   }
 

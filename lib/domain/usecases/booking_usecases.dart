@@ -3,6 +3,7 @@ import '../entities/booking_quote.dart';
 import '../entities/concession.dart';
 import '../entities/loyalty_wallet.dart';
 import '../entities/seat.dart';
+import '../entities/seat_hold_session.dart';
 import '../repositories/booking_repository.dart';
 
 class GetSeatsUseCase {
@@ -13,6 +14,33 @@ class GetSeatsUseCase {
   Future<List<Seat>> call(String showtimeId) {
     return _repository.getSeats(showtimeId);
   }
+}
+
+class CreateSeatHoldUseCase {
+  final BookingRepository _repository;
+  CreateSeatHoldUseCase(this._repository);
+  Future<SeatHoldSession> call(String showtimeId, List<String> seatIds) =>
+      _repository.createSeatHold(showtimeId, seatIds);
+}
+
+class GetOwnedSeatHoldUseCase {
+  final BookingRepository _repository;
+  GetOwnedSeatHoldUseCase(this._repository);
+  Future<SeatHoldSession> call(String id) => _repository.getOwnedSeatHold(id);
+}
+
+class ReplaceSeatHoldUseCase {
+  final BookingRepository _repository;
+  ReplaceSeatHoldUseCase(this._repository);
+  Future<SeatHoldSession> call(
+          String id, String showtimeId, List<String> seats) =>
+      _repository.replaceSeatHold(id, showtimeId, seats);
+}
+
+class ReleaseSeatHoldUseCase {
+  final BookingRepository _repository;
+  ReleaseSeatHoldUseCase(this._repository);
+  Future<void> call(String id) => _repository.releaseSeatHold(id);
 }
 
 class GetConcessionsUseCase {
@@ -36,6 +64,7 @@ class CreateBookingUseCase {
     Map<String, int> concessions,
     String? promotionCode,
     int usedPoints,
+    String seatHoldGroupId,
   ) {
     return _repository.createBooking(
       showtimeId,
@@ -43,6 +72,7 @@ class CreateBookingUseCase {
       concessions,
       promotionCode,
       usedPoints,
+      seatHoldGroupId,
     );
   }
 }

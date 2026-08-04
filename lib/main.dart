@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/theme/app_theme.dart';
 import 'core/network/dio_client.dart';
 
@@ -26,6 +27,7 @@ import 'data/datasources/booking_remote_data_source.dart';
 import 'data/repositories/booking_repository_impl.dart';
 import 'domain/usecases/booking_usecases.dart';
 import 'presentation/providers/booking_provider.dart';
+import 'data/repositories/seat_realtime_repository_impl.dart';
 
 import 'data/datasources/ticket_remote_data_source.dart';
 import 'data/repositories/ticket_repository_impl.dart';
@@ -72,12 +74,17 @@ void main() async {
   final bookingRemoteDataSource = BookingRemoteDataSourceImpl(dioClient);
   final bookingRepository = BookingRepositoryImpl(bookingRemoteDataSource);
   final getSeatsUseCase = GetSeatsUseCase(bookingRepository);
+  final createSeatHoldUseCase = CreateSeatHoldUseCase(bookingRepository);
+  final getOwnedSeatHoldUseCase = GetOwnedSeatHoldUseCase(bookingRepository);
+  final replaceSeatHoldUseCase = ReplaceSeatHoldUseCase(bookingRepository);
+  final releaseSeatHoldUseCase = ReleaseSeatHoldUseCase(bookingRepository);
   final getConcessionsUseCase = GetConcessionsUseCase(bookingRepository);
   final createBookingUseCase = CreateBookingUseCase(bookingRepository);
   final quoteBookingUseCase = QuoteBookingUseCase(bookingRepository);
   final getLoyaltyWalletUseCase = GetLoyaltyWalletUseCase(bookingRepository);
   final getBookingByIdUseCase = GetBookingByIdUseCase(bookingRepository);
   final createPaymentUrlUseCase = CreatePaymentUrlUseCase(bookingRepository);
+  final seatRealtimeRepository = SeatRealtimeRepositoryImpl(dioClient, prefs);
 
   // Ticket Dependencies
   final ticketRemoteDataSource = TicketRemoteDataSourceImpl(dioClient);
@@ -101,13 +108,12 @@ void main() async {
               AuthProvider(loginUseCase, registerUseCase, logoutUsecase),
         ),
         ChangeNotifierProvider(
-          create: (_) =>
-              MovieProvider(
-                getNowPlayingUseCase,
-                getUpcomingUseCase,
-                getMovieDiscoveryUseCase,
-                getMovieDetailsUseCase,
-              ),
+          create: (_) => MovieProvider(
+            getNowPlayingUseCase,
+            getUpcomingUseCase,
+            getMovieDiscoveryUseCase,
+            getMovieDetailsUseCase,
+          ),
         ),
         ChangeNotifierProvider(
           create: (_) => CinemaProvider(
@@ -119,12 +125,17 @@ void main() async {
         ChangeNotifierProvider(
           create: (_) => BookingProvider(
             getSeatsUseCase,
+            createSeatHoldUseCase,
+            getOwnedSeatHoldUseCase,
+            replaceSeatHoldUseCase,
+            releaseSeatHoldUseCase,
             getConcessionsUseCase,
             createBookingUseCase,
             quoteBookingUseCase,
             getLoyaltyWalletUseCase,
             getBookingByIdUseCase,
             createPaymentUrlUseCase,
+            seatRealtimeRepository,
           ),
         ),
         ChangeNotifierProvider(
@@ -153,6 +164,12 @@ class MovieBookingApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       themeMode: ThemeMode.dark,
+      supportedLocales: const [Locale('vi'), Locale('en')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       home: const LoginScreen(),
     );
   }

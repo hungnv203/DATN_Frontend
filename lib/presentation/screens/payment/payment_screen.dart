@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart';
 import '../../providers/booking_provider.dart';
+
+@visibleForTesting
+bool isExpectedPaymentReturn(Uri candidate, Uri expected) {
+  return candidate.scheme == expected.scheme &&
+      candidate.host == expected.host &&
+      candidate.port == expected.port &&
+      candidate.path == expected.path;
+}
 
 class PaymentScreen extends StatefulWidget {
   final String bookingId;
@@ -17,6 +24,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   late final WebViewController _controller;
   bool _isLoading = true;
   String? _paymentUrl;
+  Uri? _expectedReturnUri;
   String? _errorMessage;
 
   @override
@@ -47,27 +55,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
               });
             }
           },
-          onSslAuthError: (error) {
-            final platformError = error.platform;
-            final url =
-                platformError is AndroidSslAuthError ? platformError.url : '';
-            final host = Uri.tryParse(url)?.host ?? '';
-            if (host == 'sandbox.vnpayment.vn') {
-              error.proceed();
-              return;
-            }
-
-            error.cancel();
-            if (mounted) {
-              setState(() {
-                _isLoading = false;
-                _errorMessage =
-                    'The payment page was blocked because SSL is invalid.';
-              });
-            }
-          },
           onNavigationRequest: (request) {
-            if (request.url.contains('payment-result')) {
+            final uri = Uri.tryParse(request.url);
+            if (uri != null &&
+                _expectedReturnUri != null &&
+                isExpectedPaymentReturn(uri, _expectedReturnUri!)) {
               _handlePaymentResult(request.url);
               return NavigationDecision.prevent;
             }
@@ -103,14 +95,25 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     setState(() {
       _paymentUrl = url;
+      final paymentUri = Uri.parse(url);
+      _expectedReturnUri = Uri.tryParse(
+        paymentUri.queryParameters['vnp_ReturnUrl'] ?? '',
+      );
     });
     await _controller.loadRequest(Uri.parse(url));
   }
 
-  void _handlePaymentResult(String url) {
+  Future<void> _handlePaymentResult(String url) async {
     final uri = Uri.parse(url);
-    final success = uri.queryParameters['success']?.toLowerCase() == 'true';
-    Navigator.pop(context, success);
+    final returnedBookingId = uri.queryParameters['bookingId'];
+    if (returnedBookingId != null && returnedBookingId != widget.bookingId) {
+      return;
+    }
+    final booking = await context
+        .read<BookingProvider>()
+        .fetchBookingById(widget.bookingId);
+    if (!mounted) return;
+    Navigator.pop(context, booking?.status);
   }
 
   @override

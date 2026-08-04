@@ -6,11 +6,19 @@ import '../models/booking_model.dart';
 import '../models/booking_quote_model.dart';
 import '../models/concession_model.dart';
 import '../models/loyalty_wallet_model.dart';
+import '../models/seat_hold_session_model.dart';
+import '../../core/error/seat_hold_exceptions.dart';
 
 abstract class BookingRemoteDataSource {
   Future<BookingModel> getBookingById(String id);
   Future<String> createPaymentUrl(String bookingId);
   Future<List<SeatModel>> getSeats(String showtimeId);
+  Future<SeatHoldSessionModel> createSeatHold(
+      String showtimeId, List<String> seatIds);
+  Future<SeatHoldSessionModel> getOwnedSeatHold(String holdGroupId);
+  Future<SeatHoldSessionModel> replaceSeatHold(
+      String holdGroupId, String showtimeId, List<String> seatIds);
+  Future<void> releaseSeatHold(String holdGroupId);
   Future<List<ConcessionModel>> getConcessions();
   Future<LoyaltyWalletModel> getLoyaltyWallet();
   Future<BookingQuoteModel> quoteBooking(
@@ -26,6 +34,7 @@ abstract class BookingRemoteDataSource {
     Map<String, int> concessions,
     String? promotionCode,
     int usedPoints,
+    String seatHoldGroupId,
   );
 }
 
@@ -80,6 +89,59 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
       }
     } on DioException catch (e) {
       throw ServerException(e.message ?? 'Unknown error');
+    }
+  }
+
+  @override
+  Future<SeatHoldSessionModel> createSeatHold(
+          String showtimeId, List<String> seatIds) =>
+      _holdRequest(() => client.post('seat-holds',
+          data: {'showtimeId': showtimeId, 'seatIds': seatIds}));
+
+  @override
+  Future<SeatHoldSessionModel> getOwnedSeatHold(String holdGroupId) =>
+      _holdRequest(() => client.get('seat-holds/$holdGroupId'));
+
+  @override
+  Future<SeatHoldSessionModel> replaceSeatHold(
+          String holdGroupId, String showtimeId, List<String> seatIds) =>
+      _holdRequest(() => client.put('seat-holds/$holdGroupId',
+          data: {'showtimeId': showtimeId, 'seatIds': seatIds}));
+
+  @override
+  Future<void> releaseSeatHold(String holdGroupId) async {
+    try {
+      final response = await client.delete('seat-holds/$holdGroupId');
+      if (response.statusCode != 204) {
+        throw ServerException('Seat release failed', response.statusCode);
+      }
+    } on ServerException catch (error) {
+      _throwHoldFailure(error);
+    }
+  }
+
+  Future<SeatHoldSessionModel> _holdRequest(
+      Future<Response<dynamic>> Function() request) async {
+    try {
+      final response = await request();
+      return SeatHoldSessionModel.fromJson(
+          Map<String, dynamic>.from(response.data as Map));
+    } on ServerException catch (error) {
+      _throwHoldFailure(error);
+    }
+  }
+
+  Never _throwHoldFailure(ServerException error) {
+    switch (error.statusCode) {
+      case 409:
+        throw SeatHoldConflict(error.message);
+      case 404:
+        throw SeatHoldUnavailable(error.message);
+      case 401:
+      case 403:
+        throw const SeatHoldAuthenticationRequired();
+      default:
+        throw SeatHoldTransportFailure(error.message);
     }
   }
 
@@ -152,29 +214,18 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
     Map<String, int> concessions,
     String? promotionCode,
     int usedPoints,
+    String seatHoldGroupId,
   ) async {
     try {
       final selectedConcessions = _buildSelectedConcessions(concessions);
 
-      // 1. Hold seats first
-      await client.post(
-        '${ApiConstants.bookings}/hold-seats',
-        data: {
-          'showtimeId': showtimeId,
-          'seatIds': seatIds,
-        },
-      );
-
-      // 2. Create the booking submitting the seatIds
       final response = await client.post(
         ApiConstants.bookings,
         data: {
           'showtimeId': showtimeId,
           'status': 'Pending',
-          'totalPrice': 0.0,
-          'userId':
-              '00000000-0000-0000-0000-000000000000', // Default empty GUID, backend will assign current user
           'seatIds': seatIds,
+          'seatHoldGroupId': seatHoldGroupId,
           'concessions': selectedConcessions,
           'promotionCode': promotionCode,
           'usedPoints': usedPoints,
