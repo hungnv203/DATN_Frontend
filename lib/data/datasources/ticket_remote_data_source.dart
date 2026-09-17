@@ -6,6 +6,7 @@ import '../models/ticket_model.dart';
 
 abstract class TicketRemoteDataSource {
   Future<List<TicketModel>> getMyTickets();
+  Future<List<TicketModel>> getMySuccessfulTickets();
 }
 
 class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
@@ -27,4 +28,20 @@ class TicketRemoteDataSourceImpl implements TicketRemoteDataSource {
       throw ServerException(e.message ?? 'Unknown error');
     }
   }
+
+  @override
+  Future<List<TicketModel>> getMySuccessfulTickets() async {
+    try {
+      final response = await client.get(ApiConstants.mySuccessfulTickets);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data;
+        return data.map((json) => TicketModel.fromJson(json)).toList();
+      } else {
+        throw ServerException('Failed to load successful tickets');
+      }
+    } on DioException catch (e) {
+      throw ServerException(e.message ?? 'Unknown error');
+    }
+  }
 }
+

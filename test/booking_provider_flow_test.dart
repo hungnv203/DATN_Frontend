@@ -76,6 +76,40 @@ void main() {
     provider.dispose();
   });
 
+  test('own realtime hold event does not clear selection before hold response',
+      () async {
+    final repository = _FakeBookingRepository();
+    final realtime = _FakeRealtimeRepository(repository.seats);
+    final provider = _provider(repository, realtime: realtime);
+    await provider.startFlow('showtime-1');
+    provider.toggleSeatSelection(repository.seats.first);
+
+    final confirmation = provider.confirmSeats();
+    realtime.emit(
+      const SeatStateEvent(
+        eventId: 'hold-event',
+        showtimeId: 'showtime-1',
+        version: 2,
+        changes: [
+          SeatStateChange(
+            seatId: 'A1',
+            status: 'Held',
+            holdGroupId: 'random-group',
+          ),
+        ],
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(provider.selectedSeats.map((seat) => seat.id), ['A1']);
+    repository.holdCompleter.complete(repository.session());
+    expect(await confirmation, isTrue);
+    expect(provider.selectedSeats.map((seat) => seat.id), ['A1']);
+    expect(provider.errorMessage, isNull);
+    expect(provider.currentQuote, isNotNull);
+    provider.dispose();
+  });
+
   test('stale snapshot cannot overwrite a newer showtime flow', () async {
     final repository = _FakeBookingRepository();
     final realtime = _ControlledRealtimeRepository();
@@ -166,6 +200,8 @@ class _FakeRealtimeRepository implements SeatRealtimeRepository {
   @override
   Future<SeatStateSnapshot> getSnapshot(String showtimeId) async =>
       SeatStateSnapshot(1, List<Seat>.from(seats));
+
+  void emit(SeatStateEvent event) => _events.add(event);
 }
 
 class _ControlledRealtimeRepository implements SeatRealtimeRepository {

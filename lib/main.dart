@@ -38,6 +38,10 @@ import 'data/datasources/review_remote_data_source.dart';
 import 'data/repositories/review_repository_impl.dart';
 import 'domain/usecases/review_usecases.dart';
 import 'presentation/providers/review_provider.dart';
+import 'data/datasources/assistant_remote_data_source.dart';
+import 'data/repositories/assistant_repository_impl.dart';
+import 'domain/usecases/assistant_usecases.dart';
+import 'presentation/providers/assistant_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -90,6 +94,8 @@ void main() async {
   final ticketRemoteDataSource = TicketRemoteDataSourceImpl(dioClient);
   final ticketRepository = TicketRepositoryImpl(ticketRemoteDataSource);
   final getMyTicketsUseCase = GetMyTicketsUseCase(ticketRepository);
+  final getMySuccessfulTicketsUseCase =
+      GetMySuccessfulTicketsUseCase(ticketRepository);
 
   // Review Dependencies
   final reviewRemoteDataSource = ReviewRemoteDataSourceImpl(dioClient);
@@ -97,6 +103,16 @@ void main() async {
   final getMovieReviewsUseCase = GetMovieReviewsUseCase(reviewRepository);
   final getRatingSummaryUseCase = GetRatingSummaryUseCase(reviewRepository);
   final submitReviewUseCase = SubmitReviewUseCase(reviewRepository);
+
+  // Assistant Dependencies
+  final assistantRemoteDataSource = AssistantRemoteDataSourceImpl(dioClient);
+  final assistantRepository = AssistantRepositoryImpl(assistantRemoteDataSource);
+  final getAssistantAvailabilityUseCase = GetAssistantAvailabilityUseCase(
+    assistantRepository,
+  );
+  final sendAssistantMessageUseCase = SendAssistantMessageUseCase(
+    assistantRepository,
+  );
 
   runApp(
     MultiProvider(
@@ -139,13 +155,22 @@ void main() async {
           ),
         ),
         ChangeNotifierProvider(
-          create: (_) => TicketProvider(getMyTicketsUseCase),
+          create: (_) => TicketProvider(
+            getMyTicketsUseCase,
+            getMySuccessfulTicketsUseCase,
+          ),
         ),
         ChangeNotifierProvider(
           create: (_) => ReviewProvider(
             getMovieReviewsUseCase,
             getRatingSummaryUseCase,
             submitReviewUseCase,
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => AssistantProvider(
+            getAssistantAvailabilityUseCase,
+            sendAssistantMessageUseCase,
           ),
         ),
       ],

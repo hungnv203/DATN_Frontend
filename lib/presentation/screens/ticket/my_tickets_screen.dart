@@ -14,13 +14,34 @@ class MyTicketsScreen extends StatefulWidget {
   State<MyTicketsScreen> createState() => _MyTicketsScreenState();
 }
 
-class _MyTicketsScreenState extends State<MyTicketsScreen> {
+class _MyTicketsScreenState extends State<MyTicketsScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<TicketProvider>().fetchMyTickets();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        final provider = context.read<TicketProvider>();
+        if (_tabController.index == 0) {
+          provider.fetchMySuccessfulTickets();
+        } else {
+          provider.fetchMyTickets(onlySuccess: false);
+        }
+      }
     });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<TicketProvider>().fetchMySuccessfulTickets();
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   @override
@@ -28,7 +49,19 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
     final provider = context.watch<TicketProvider>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My Tickets')),
+      appBar: AppBar(
+        title: const Text('Vé của tôi'),
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: AppColors.primary,
+          labelColor: AppColors.primary,
+          unselectedLabelColor: AppColors.textSecondary,
+          tabs: const [
+            Tab(text: 'Vé hợp lệ'),
+            Tab(text: 'Tất cả vé'),
+          ],
+        ),
+      ),
       body: provider.state == TicketState.loading
           ? const Center(child: SpinKitFadingCircle(color: AppColors.primary))
           : provider.state == TicketState.error
@@ -36,18 +69,39 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
                   child: Text(provider.errorMessage ?? 'Error',
                       style: const TextStyle(color: AppColors.error)))
               : provider.tickets.isEmpty
-                  ? const Center(child: Text('No tickets found.'))
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: provider.tickets.length,
-                      itemBuilder: (context, index) {
-                        final ticket = provider.tickets[index];
-                        return _TicketCard(ticket: ticket);
+                  ? Center(
+                      child: Text(
+                        _tabController.index == 0
+                            ? 'Không có vé hợp lệ nào.'
+                            : 'Không tìm thấy vé nào.',
+                        style: const TextStyle(color: AppColors.textSecondary),
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: () async {
+                        if (_tabController.index == 0) {
+                          await context
+                              .read<TicketProvider>()
+                              .fetchMySuccessfulTickets();
+                        } else {
+                          await context
+                              .read<TicketProvider>()
+                              .fetchMyTickets(onlySuccess: false);
+                        }
                       },
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: provider.tickets.length,
+                        itemBuilder: (context, index) {
+                          final ticket = provider.tickets[index];
+                          return _TicketCard(ticket: ticket);
+                        },
+                      ),
                     ),
     );
   }
 }
+
 
 class _TicketCard extends StatelessWidget {
   const _TicketCard({required this.ticket});

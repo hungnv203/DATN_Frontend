@@ -1,7 +1,7 @@
 class ApiConstants {
   // Thay đổi '10.0.2.2' nếu dùng Android Emulator. Nếu dùng thiết bị thật, thay bằng IP LAN của máy tính (vd: 192.168.1.x)
-  // static const String baseUrl = 'http://192.168.0.101:5275/api/';
-  static const String baseUrl = 'https://datn-iuj8.onrender.com/api/';
+  static const String baseUrl = 'http://192.168.0.102:5275/api/';
+  // static const String baseUrl = 'https://datn-iuj8.onrender.com/api/';
   // Auth
   static const String login = 'Auth/sign-in';
   static const String register = 'Auth/sign-up';
@@ -19,9 +19,16 @@ class ApiConstants {
   static const String seats = 'seats';
   static const String tickets = 'tickets';
   static const String myTickets = 'bookings/my-tickets';
+  static const String mySuccessfulTickets = 'bookings/my-tickets/success';
   static const String concessions = 'concessions';
   static const String loyaltyWallet = 'loyalty-points/me';
 
   // Payments
   static const String payments = 'payments';
+  static const String paymentResultUrl =
+      'https://datn-iuj8.onrender.com/payment-result';
+
+  // Assistant
+  static const String assistantAvailability = 'assistant/availability';
+  static const String assistantMessages = 'assistant/messages';
 }

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/app_notification.dart';
 import '../../booking_flow/booking_flow_strings.dart';
 import '../../providers/booking_provider.dart';
 import '../../providers/cinema_provider.dart';
 import '../booking/concession_selection_screen.dart';
+import '../home/home_screen.dart';
 
 class SeatSelectionScreen extends StatefulWidget {
   final String showtimeId;
@@ -97,6 +99,26 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen>
   Widget build(BuildContext context) {
     final text = BookingFlowStrings.of(context);
     final provider = context.watch<BookingProvider>();
+
+    if ((provider.phase == BookingFlowPhase.paymentCompleted ||
+            provider.currentBooking?.status == 'Paid') &&
+        ModalRoute.of(context)?.isCurrent == true) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          provider.resetFlow();
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+            (route) => false,
+          );
+          AppNotification.show(
+            context,
+            message: 'Thanh toán thành công! Đặt vé hoàn tất.',
+            type: AppNotificationType.success,
+          );
+        }
+      });
+    }
+
     final rows = <String, List<dynamic>>{};
     for (final seat in provider.seats) {
       rows.putIfAbsent(seat.row, () => []).add(seat);

@@ -245,6 +245,7 @@ class BookingProvider extends ChangeNotifier {
         return false;
       }
       _installHold(session);
+      _drainEvents();
       phase = BookingFlowPhase.selectingConcessions;
       await loadConcessionStage();
       return true;
@@ -459,6 +460,24 @@ class BookingProvider extends ChangeNotifier {
     }
   }
 
+  Future<String?> pollPaymentStatus(String id,
+      {int maxAttempts = 5, Duration interval = const Duration(seconds: 1)}) async {
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      final booking = await fetchBookingById(id);
+      final status = booking?.status;
+      if (status == 'Paid' ||
+          status == 'Failed' ||
+          status == 'Cancelled' ||
+          status == 'Expired') {
+        return status;
+      }
+      if (attempt < maxAttempts - 1) {
+        await Future<void>.delayed(interval);
+      }
+    }
+    return currentBooking?.status;
+  }
+
   Future<String?> createPaymentUrl(String id) async {
     try {
       return await _createPaymentUrl(id);
@@ -609,9 +628,13 @@ class BookingProvider extends ChangeNotifier {
     if (event.showtimeId != showtimeId || _eventIds.contains(event.eventId)) {
       return;
     }
-    if (_installingSnapshot || event.version > seatStateVersion + 1) {
+    if (phase == BookingFlowPhase.holding ||
+        _installingSnapshot ||
+        event.version > seatStateVersion + 1) {
       _eventBuffer.add(event);
-      if (!_installingSnapshot) _resync(event.showtimeId);
+      if (phase != BookingFlowPhase.holding && !_installingSnapshot) {
+        _resync(event.showtimeId);
+      }
       return;
     }
     if (event.version > seatStateVersion) _applyEvent(event);

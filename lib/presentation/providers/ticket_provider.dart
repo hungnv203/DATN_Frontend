@@ -6,20 +6,27 @@ enum TicketState { initial, loading, success, error }
 
 class TicketProvider extends ChangeNotifier {
   final GetMyTicketsUseCase _getMyTickets;
+  final GetMySuccessfulTicketsUseCase _getMySuccessfulTickets;
 
-  TicketProvider(this._getMyTickets);
+  TicketProvider(this._getMyTickets, this._getMySuccessfulTickets);
 
   TicketState state = TicketState.initial;
   String? errorMessage;
 
   List<Ticket> tickets = [];
+  bool onlySuccessful = false;
 
-  Future<void> fetchMyTickets() async {
+  Future<void> fetchMyTickets({bool onlySuccess = false}) async {
     try {
+      onlySuccessful = onlySuccess;
       state = TicketState.loading;
       notifyListeners();
 
-      tickets = await _getMyTickets();
+      if (onlySuccess) {
+        tickets = await _getMySuccessfulTickets();
+      } else {
+        tickets = await _getMyTickets();
+      }
 
       state = TicketState.success;
       notifyListeners();
@@ -29,4 +36,7 @@ class TicketProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<void> fetchMySuccessfulTickets() => fetchMyTickets(onlySuccess: true);
 }
+

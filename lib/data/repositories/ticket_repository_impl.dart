@@ -11,4 +11,10 @@ class TicketRepositoryImpl implements TicketRepository {
   Future<List<Ticket>> getMyTickets() async {
     return await remoteDataSource.getMyTickets();
   }
+
+  @override
+  Future<List<Ticket>> getMySuccessfulTickets() async {
+    return await remoteDataSource.getMySuccessfulTickets();
+  }
 }
+

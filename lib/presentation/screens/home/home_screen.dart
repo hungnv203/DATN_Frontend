@@ -8,6 +8,8 @@ import '../../../domain/entities/movie_discovery.dart';
 import '../../providers/movie_provider.dart';
 import '../movie/movie_detail_screen.dart';
 import '../profile/profile_screen.dart';
+import '../assistant/assistant_screen.dart';
+import '../../providers/assistant_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,6 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<MovieProvider>().fetchMovies();
+      context.read<AssistantProvider>().checkAvailability();
     });
   }
 
@@ -30,6 +33,20 @@ class _HomeScreenState extends State<HomeScreen> {
     final state = context.select<MovieProvider, MovieState>((value) => value.state);
 
     return Scaffold(
+      floatingActionButton: context.select<AssistantProvider, AssistantState>(
+        (value) => value.state,
+      ) == AssistantState.ready
+          ? FloatingActionButton.extended(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AssistantScreen()),
+              ),
+              icon: const Icon(Icons.smart_toy_outlined),
+              label: Text(Localizations.localeOf(context).languageCode == 'en'
+                  ? 'Ask Assistant'
+                  : 'Trợ lý AI'),
+            )
+          : null,
       body: SafeArea(
         child: switch (state) {
           MovieState.loading => const Center(child: SpinKitFadingCircle(color: AppColors.primary)),
@@ -82,7 +99,7 @@ class _MovieDiscoverView extends StatelessWidget {
         if (discovery != null && discovery.featured.isNotEmpty)
           _MovieSection(
             title: '🎬 Phim nổi bật',
-            subtitle: 'Được yêu thích dựa trên lượt xem và đánh giá',
+            subtitle: 'Được yêu thích dựa trên lượt xem và vé bán',
             movies: discovery.featured,
           ),
         if (discovery != null && discovery.trending.isNotEmpty)
@@ -90,12 +107,6 @@ class _MovieDiscoverView extends StatelessWidget {
             title: '🔥 Đang hot',
             subtitle: 'Có lượt đặt vé cao nhất trong 7 ngày qua',
             movies: discovery.trending,
-          ),
-        if (discovery != null && discovery.topRated.isNotEmpty)
-          _MovieSection(
-            title: '⭐ Đánh giá cao',
-            subtitle: 'Nhận điểm trung bình cao nhất từ khán giả',
-            movies: discovery.topRated,
           ),
         if (discovery != null && discovery.bestSelling.isNotEmpty)
           _MovieSection(

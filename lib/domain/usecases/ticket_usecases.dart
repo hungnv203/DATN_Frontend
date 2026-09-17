@@ -10,3 +10,14 @@ class GetMyTicketsUseCase {
     return _repository.getMyTickets();
   }
 }
+
+class GetMySuccessfulTicketsUseCase {
+  final TicketRepository _repository;
+
+  GetMySuccessfulTicketsUseCase(this._repository);
+
+  Future<List<Ticket>> call() {
+    return _repository.getMySuccessfulTickets();
+  }
+}
+
