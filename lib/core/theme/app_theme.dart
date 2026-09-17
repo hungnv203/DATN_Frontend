@@ -4,7 +4,7 @@ import 'app_colors.dart';
 
 class AppTheme {
   static ThemeData get darkTheme {
-    final colorScheme = const ColorScheme.dark(
+    const colorScheme = ColorScheme.dark(
       primary: AppColors.primary,
       primaryContainer: AppColors.primaryContainer,
       secondary: AppColors.secondary,

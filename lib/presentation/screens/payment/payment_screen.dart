@@ -60,7 +60,7 @@ class _PaymentScreenState extends State<PaymentScreen>
       setState(() {
         _isLoading = false;
         _errorMessage =
-            provider.errorMessage ?? 'Booking not found or inaccessible.';
+            provider.errorMessage ?? 'Không tìm thấy thông tin đơn đặt vé.';
       });
       return;
     }
@@ -71,7 +71,7 @@ class _PaymentScreenState extends State<PaymentScreen>
       setState(() {
         _isLoading = false;
         _errorMessage =
-            provider.errorMessage ?? 'Unable to create payment URL.';
+            provider.errorMessage ?? 'Không thể tạo liên kết thanh toán.';
       });
       return;
     }
@@ -211,7 +211,7 @@ class _PaymentScreenState extends State<PaymentScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('VNPAY Payment'),
+        title: const Text('Thanh toán VNPAY'),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.pop(context, false),

@@ -37,7 +37,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
       return Scaffold(
         appBar: AppBar(),
         body: Center(
-          child: Text(movieProvider.errorMessage ?? 'Movie not found'),
+          child: Text(movieProvider.errorMessage ?? 'Không tìm thấy thông tin phim.'),
         ),
       );
     }
@@ -96,14 +96,14 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                     children: [
                       _buildTag(movie.rating, Colors.orange),
                       const SizedBox(width: 8),
-                      _buildTag('${movie.duration} min', Colors.blueGrey),
+                      _buildTag('${movie.duration} phút', Colors.blueGrey),
                       const SizedBox(width: 8),
                       _buildTag(movie.language, Colors.deepPurple),
                     ],
                   ),
                   const SizedBox(height: 24),
                   const Text(
-                    'Synopsis',
+                    'Nội dung phim',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
@@ -132,7 +132,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
               );
             },
             child: const Text(
-              'Book Ticket',
+              'Đặt vé ngay',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
@@ -145,7 +145,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: color),
       ),

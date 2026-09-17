@@ -20,9 +20,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = authProvider.currentUser;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(title: const Text('Hồ sơ cá nhân')),
       body: user == null
-          ? const Center(child: Text('Not logged in'))
+          ? const Center(child: Text('Chưa đăng nhập'))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Column(
@@ -54,7 +54,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ListTile(
                     leading: const Icon(Icons.confirmation_number,
                         color: AppColors.primary),
-                    title: const Text('My Tickets'),
+                    title: const Text('Vé của tôi'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
                       Navigator.push(
@@ -69,15 +69,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ListTile(
                     leading: const Icon(Icons.logout, color: AppColors.error),
                     title: const Text(
-                      'Logout',
+                      'Đăng xuất',
                       style: TextStyle(color: AppColors.error),
                     ),
-                    onTap: () {
+                    onTap: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Xác nhận đăng xuất'),
+                          content: const Text('Bạn có chắc chắn muốn đăng xuất khỏi tài khoản không?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('Hủy'),
+                            ),
+                            FilledButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: const Text('Đăng xuất'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirm != true || !mounted) return;
                       context.read<AssistantProvider>().clearSession();
                       authProvider.logout();
-                      Navigator.push(
+                      Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(builder: (_) => const LoginScreen()),
+                        (route) => false,
                       );
                     },
                   ),

@@ -66,7 +66,7 @@ class _MyTicketsScreenState extends State<MyTicketsScreen>
           ? const Center(child: SpinKitFadingCircle(color: AppColors.primary))
           : provider.state == TicketState.error
               ? Center(
-                  child: Text(provider.errorMessage ?? 'Error',
+                  child: Text(provider.errorMessage ?? 'Không thể tải danh sách vé. Vui lòng thử lại.',
                       style: const TextStyle(color: AppColors.error)))
               : provider.tickets.isEmpty
                   ? Center(
@@ -111,10 +111,10 @@ class _TicketCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final movieTitle =
-        ticket.movieTitle.isNotEmpty ? ticket.movieTitle : 'Movie';
+        ticket.movieTitle.isNotEmpty ? ticket.movieTitle : 'Phim';
     final showtime = ticket.startTime != null
         ? DateFormat('HH:mm - dd/MM/yyyy').format(ticket.startTime!)
-        : 'Updating';
+        : 'Đang cập nhật';
     final price = NumberFormat.currency(locale: 'vi_VN', symbol: 'VND')
         .format(ticket.price);
     final paymentColor = _statusColor(ticket.paymentStatus);
@@ -161,7 +161,7 @@ class _TicketCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   _TicketInfoRow(
                       icon: Icons.event_seat,
-                      label: 'Seat: ${ticket.seatLabel}'),
+                      label: 'Ghế: ${ticket.seatLabel}'),
                   const SizedBox(height: 6),
                   _TicketInfoRow(icon: Icons.payments, label: price),
                   const SizedBox(height: 10),
@@ -175,7 +175,7 @@ class _TicketCard extends StatelessWidget {
                           color: paymentColor.withValues(alpha: 0.5)),
                     ),
                     child: Text(
-                      'Payment: ${ticket.paymentStatus}',
+                      'Thanh toán: ${_formatPaymentStatus(ticket.paymentStatus)}',
                       style: TextStyle(
                         color: paymentColor,
                         fontWeight: FontWeight.w700,
@@ -189,6 +189,24 @@ class _TicketCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _formatPaymentStatus(String status) {
+    switch (status.toLowerCase()) {
+      case 'paid':
+        return 'Đã thanh toán';
+      case 'pending':
+      case 'reserved':
+        return 'Chờ thanh toán';
+      case 'cancelled':
+        return 'Đã hủy';
+      case 'expired':
+        return 'Đã hết hạn';
+      case 'failed':
+        return 'Thất bại';
+      default:
+        return status;
+    }
   }
 
   Color _statusColor(String status) {

@@ -15,8 +15,6 @@ class _AssistantScreenState extends State<AssistantScreen> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
 
-  bool get _isEnglish => Localizations.localeOf(context).languageCode == 'en';
-
   @override
   void initState() {
     super.initState();
@@ -58,7 +56,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        title: Text(_isEnglish ? 'Movie assistant' : 'Trợ lý phim'),
+        title: const Text('Trợ lý phim AI'),
       ),
       body: SafeArea(
         child: Column(
@@ -67,7 +65,6 @@ class _AssistantScreenState extends State<AssistantScreen> {
             if (provider.isAvailable) _AssistantInput(
               controller: _controller,
               enabled: !provider.isSending,
-              isEnglish: _isEnglish,
               onSend: _send,
             ),
           ],
@@ -80,7 +77,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
     if (provider.state == AssistantState.checking) {
       return Center(
         child: Semantics(
-          label: _isEnglish ? 'Checking assistant availability' : 'Đang kiểm tra trợ lý',
+          label: 'Đang kiểm tra trợ lý',
           child: const CircularProgressIndicator(),
         ),
       );
@@ -88,10 +85,8 @@ class _AssistantScreenState extends State<AssistantScreen> {
     if (provider.state == AssistantState.unavailable && provider.messages.isEmpty) {
       return _StatusPanel(
         icon: Icons.smart_toy_outlined,
-        message: _isEnglish
-            ? 'The movie assistant is currently unavailable.'
-            : 'Trợ lý phim hiện chưa khả dụng.',
-        actionLabel: _isEnglish ? 'Try again' : 'Thử lại',
+        message: 'Trợ lý phim hiện chưa khả dụng.',
+        actionLabel: 'Thử lại',
         onAction: provider.checkAvailability,
       );
     }
@@ -111,7 +106,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
         if (provider.isSending) {
           return Semantics(
             liveRegion: true,
-            label: _isEnglish ? 'Assistant is responding' : 'Trợ lý đang trả lời',
+            label: 'Trợ lý đang trả lời',
             child: const Align(
               alignment: Alignment.centerLeft,
               child: Padding(
@@ -124,7 +119,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
         return _StatusPanel(
           icon: Icons.error_outline,
           message: provider.errorMessage ?? '',
-          actionLabel: _isEnglish ? 'Retry' : 'Thử lại',
+          actionLabel: 'Thử lại',
           onAction: () => provider.retry(
             Localizations.localeOf(context).toLanguageTag(),
           ),
@@ -190,7 +185,7 @@ class _MovieResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: '${movie.title}, ${movie.duration} minutes, ${movie.rating}',
+      label: '${movie.title}, ${movie.duration} phút, ${movie.rating}',
       child: Padding(
         padding: const EdgeInsets.only(top: 12),
         child: Row(
@@ -220,7 +215,7 @@ class _MovieResultCard extends StatelessWidget {
                 children: [
                   Text(movie.title, style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 4),
-                  Text('${movie.duration} min • ${movie.rating}'),
+                  Text('${movie.duration} phút • ${movie.rating}'),
                   if (movie.genres.isNotEmpty) Text(movie.genres.join(' • ')),
                   if (movie.reason.isNotEmpty) ...[
                     const SizedBox(height: 6),
@@ -240,13 +235,11 @@ class _AssistantInput extends StatelessWidget {
   const _AssistantInput({
     required this.controller,
     required this.enabled,
-    required this.isEnglish,
     required this.onSend,
   });
 
   final TextEditingController controller;
   final bool enabled;
-  final bool isEnglish;
   final VoidCallback onSend;
 
   @override
@@ -259,7 +252,7 @@ class _AssistantInput extends StatelessWidget {
           Expanded(
             child: Semantics(
               textField: true,
-              label: isEnglish ? 'Message the movie assistant' : 'Nhắn cho trợ lý phim',
+              label: 'Nhắn cho trợ lý phim',
               child: TextField(
                 controller: controller,
                 enabled: enabled,
@@ -268,8 +261,8 @@ class _AssistantInput extends StatelessWidget {
                 maxLength: 1000,
                 textInputAction: TextInputAction.send,
                 onSubmitted: enabled ? (_) => onSend() : null,
-                decoration: InputDecoration(
-                  hintText: isEnglish ? 'Ask about a movie...' : 'Hỏi về một bộ phim...',
+                decoration: const InputDecoration(
+                  hintText: 'Hỏi về phim, thể loại, hoặc gợi ý hôm nay...',
                   counterText: '',
                 ),
               ),
@@ -278,7 +271,7 @@ class _AssistantInput extends StatelessWidget {
           const SizedBox(width: 8),
           Semantics(
             button: true,
-            label: isEnglish ? 'Send message' : 'Gửi tin nhắn',
+            label: 'Gửi tin nhắn',
             child: IconButton.filled(
               constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
               onPressed: enabled ? onSend : null,

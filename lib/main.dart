@@ -185,11 +185,12 @@ class MovieBookingApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Movie Booking App',
+      title: 'MovieBooking - Đặt vé xem phim',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       themeMode: ThemeMode.dark,
-      supportedLocales: const [Locale('vi'), Locale('en')],
+      locale: const Locale('vi'),
+      supportedLocales: const [Locale('vi')],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,

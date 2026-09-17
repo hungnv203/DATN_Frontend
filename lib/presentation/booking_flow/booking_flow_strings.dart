@@ -9,70 +9,55 @@ class BookingFlowErrorKeys {
 }
 
 class BookingFlowStrings {
-  final bool vi;
-  const BookingFlowStrings._(this.vi);
+  const BookingFlowStrings._();
 
-  static BookingFlowStrings of(BuildContext context) => BookingFlowStrings._(
-      Localizations.localeOf(context).languageCode == 'vi');
+  static BookingFlowStrings of(BuildContext context) =>
+      const BookingFlowStrings._();
 
-  String get selectSeats => vi ? 'Chọn ghế' : 'Select seats';
-  String get concessions => vi ? 'Bắp nước' : 'Concessions';
-  String get review => vi ? 'Thông tin đặt vé' : 'Booking review';
-  String get screen => vi ? 'MÀN HÌNH' : 'SCREEN';
-  String get noSeats => vi ? 'Không có ghế khả dụng' : 'No seats available';
-  String get confirmSeats => vi ? 'Xác nhận ghế' : 'Confirm seats';
-  String get releaseSeats => vi ? 'Trả ghế đang giữ' : 'Release held seats';
-  String get continueLabel => vi ? 'Tiếp tục' : 'Continue';
-  String get selectedCount => vi ? 'Số ghế đã chọn' : 'Selected seats';
-  String get priceAtReview =>
-      vi ? 'Giá được tính ở bước xem lại' : 'Price calculated at review';
-  String get holdTime => vi ? 'Thời gian giữ ghế' : 'Seat hold time';
-  String get backToSeats => vi ? 'Sửa ghế' : 'Edit seats';
-  String get promotion => vi ? 'Mã khuyến mãi' : 'Promotion code';
-  String get points => vi ? 'Điểm sử dụng' : 'Points to use';
-  String get total => vi ? 'Tổng thanh toán' : 'Total';
-  String get confirmBooking => vi ? 'Xác nhận đặt vé' : 'Confirm booking';
-  String get paymentPending =>
-      vi ? 'Thanh toán đang chờ xử lý.' : 'Payment is pending.';
-  String get leaveTitle => vi ? 'Rời luồng đặt vé?' : 'Leave booking flow?';
-  String get leaveBody => vi
-      ? 'Ghế đang giữ sẽ được trả lại.'
-      : 'Your held seats will be released.';
-  String get stay => vi ? 'Ở lại' : 'Stay';
-  String get leave => vi ? 'Rời đi' : 'Leave';
-  String get retry => vi ? 'Thử lại' : 'Retry';
-  String get leaveWithTtl =>
-      vi ? 'Rời đi và chờ hết hạn' : 'Leave and let hold expire';
-  String get releaseFailed =>
-      vi ? 'Không thể trả ghế lúc này.' : 'Unable to release seats.';
-  String seatSemantic(String label, String type, String state) => vi
-      ? 'Ghế $label, loại $type, trạng thái $state'
-      : 'Seat $label, $type, $state';
-  String stateAvailable(bool selected) => selected
-      ? (vi ? 'đã chọn' : 'selected')
-      : (vi ? 'còn trống' : 'available');
-  String get stateHeld => vi ? 'đang giữ' : 'held';
-  String get stateBooked => vi ? 'đã bán' : 'booked';
-  String get heldLegend =>
-      vi ? 'Đang giữ (biểu tượng khóa)' : 'Held (lock icon)';
-  String get bookedLegend => vi ? 'Đã bán (dấu kiểm)' : 'Booked (check icon)';
-  String get loading => vi ? 'Đang tải' : 'Loading';
-  String get emptyConcessions =>
-      vi ? 'Không có bắp nước đang bán' : 'No active concessions';
-  String get quoteUpdating => vi ? 'Đang cập nhật giá…' : 'Updating price…';
-  String get showtimeMissing =>
-      vi ? 'Không tìm thấy suất chiếu' : 'Showtime not found';
-  String get requestFailed => vi
-      ? 'Không thể hoàn tất yêu cầu. Vui lòng thử lại.'
-      : 'Unable to complete the request. Please try again.';
-  String get authenticationRequired => vi
-      ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
-      : 'Your session has expired. Please sign in again.';
+  String get selectSeats => 'Chọn ghế';
+  String get concessions => 'Bắp nước & Combo';
+  String get review => 'Thông tin đặt vé';
+  String get screen => 'MÀN HÌNH';
+  String get noSeats => 'Không có ghế khả dụng';
+  String get confirmSeats => 'Xác nhận ghế';
+  String get releaseSeats => 'Hủy giữ ghế';
+  String get continueLabel => 'Tiếp tục';
+  String get selectedCount => 'Số ghế đã chọn';
+  String get priceAtReview => 'Giá vé chính xác sẽ được tính ở bước xác nhận';
+  String get holdTime => 'Thời gian giữ ghế';
+  String get backToSeats => 'Chọn lại ghế';
+  String get promotion => 'Mã khuyến mãi';
+  String get points => 'Điểm tích lũy';
+  String get total => 'Tổng thanh toán';
+  String get confirmBooking => 'Xác nhận đặt vé';
+  String get paymentPending => 'Thanh toán đang chờ xử lý...';
+  String get leaveTitle => 'Rời luồng đặt vé?';
+  String get leaveBody => 'Các ghế bạn đang giữ sẽ bị hủy bỏ và nhả lại cho khách hàng khác.';
+  String get stay => 'Ở lại';
+  String get leave => 'Rời đi';
+  String get retry => 'Thử lại';
+  String get leaveWithTtl => 'Rời đi (chờ hết hạn)';
+  String get releaseFailed => 'Không thể hủy giữ ghế lúc này.';
+  String seatSemantic(String label, String type, String state) =>
+      'Ghế $label, loại $type, trạng thái $state';
+  String stateAvailable(bool selected) =>
+      selected ? 'đã chọn' : 'còn trống';
+  String get stateHeld => 'đang giữ';
+  String get stateBooked => 'đã bán';
+  String get heldLegend => 'Đang giữ (biểu tượng khóa)';
+  String get bookedLegend => 'Đã bán (dấu kiểm)';
+  String get loading => 'Đang tải...';
+  String get emptyConcessions => 'Hiện tại rạp chưa có bắp nước đang bán';
+  String get quoteUpdating => 'Đang cập nhật giá...';
+  String get showtimeMissing => 'Không tìm thấy thông tin suất chiếu';
+  String get requestFailed =>
+      'Không thể hoàn tất yêu cầu. Vui lòng thử lại.';
+  String get authenticationRequired =>
+      'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
   String get holdExpired =>
-      vi ? 'Thời gian giữ ghế đã hết.' : 'Your seat hold has expired.';
-  String get seatUnavailable => vi
-      ? 'Một ghế đã chọn không còn khả dụng.'
-      : 'A selected seat is no longer available.';
+      'Thời gian giữ ghế đã hết hạn. Vui lòng chọn lại ghế.';
+  String get seatUnavailable =>
+      'Một hoặc nhiều ghế bạn chọn vừa có người khác giữ. Vui lòng chọn ghế khác.';
 
   String error(String key) {
     switch (key) {

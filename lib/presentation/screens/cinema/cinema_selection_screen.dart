@@ -38,12 +38,12 @@ class _CinemaSelectionScreenState extends State<CinemaSelectionScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(movie?.title ?? 'Select showtime'),
+        title: Text(movie?.title ?? 'Chọn suất chiếu'),
       ),
       body: provider.state == CinemaState.loading && provider.cinemas.isEmpty
           ? const Center(child: SpinKitFadingCircle(color: AppColors.primary))
           : provider.state == CinemaState.error && provider.cinemas.isEmpty
-              ? Center(child: Text(provider.errorMessage ?? 'Error', style: const TextStyle(color: AppColors.error)))
+              ? Center(child: Text(provider.errorMessage ?? 'Không thể tải lịch chiếu. Vui lòng thử lại.', style: const TextStyle(color: AppColors.error)))
               : Column(
                   children: [
                     // Date Selector
@@ -70,10 +70,11 @@ class _CinemaSelectionScreenState extends State<CinemaSelectionScreen> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    DateFormat('MMM').format(date).toUpperCase(),
+                                    'Th${date.month}',
                                     style: TextStyle(
                                       color: isSelected ? Colors.white : AppColors.textSecondary,
                                       fontSize: 12,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
@@ -126,7 +127,7 @@ class _CinemaSelectionScreenState extends State<CinemaSelectionScreen> {
                                     if (cinemaShowtimes.isEmpty)
                                       const Padding(
                                         padding: EdgeInsets.all(16.0),
-                                        child: Text('No showtimes available for this date.'),
+                                        child: Text('Không có suất chiếu nào trong ngày đã chọn.'),
                                       )
                                     else
                                       Padding(

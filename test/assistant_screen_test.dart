@@ -13,8 +13,8 @@ void main() {
     await tester.pumpWidget(_app(repository));
     await tester.pumpAndSettle();
 
-    expect(find.text('The movie assistant is currently unavailable.'), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, 'Try again'), findsOneWidget);
+    expect(find.text('Trợ lý phim hiện chưa khả dụng.'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Thử lại'), findsOneWidget);
     expect(find.byType(TextField), findsNothing);
   });
 

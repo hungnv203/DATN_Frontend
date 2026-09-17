@@ -93,7 +93,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
                     child: Text(
-                      authProvider.errorMessage ?? 'An error occurred',
+                      authProvider.errorMessage ?? 'Đăng nhập không thành công. Vui lòng kiểm tra lại thông tin.',
                       style: const TextStyle(color: AppColors.error),
                       textAlign: TextAlign.center,
                     ),

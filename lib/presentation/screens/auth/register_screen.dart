@@ -47,11 +47,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextFormField(
                   controller: _nameController,
                   decoration: const InputDecoration(
-                    labelText: 'Full Name',
+                    labelText: 'Họ và tên',
                     prefixIcon: Icon(Icons.person),
                     border: OutlineInputBorder(),
                   ),
-                  validator: (value) => value!.isEmpty ? 'Please enter full name' : null,
+                  validator: (value) => value == null || value.isEmpty ? 'Vui lòng nhập họ và tên' : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -61,35 +61,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     prefixIcon: Icon(Icons.email),
                     border: OutlineInputBorder(),
                   ),
-                  validator: (value) => value!.isEmpty ? 'Please enter email' : null,
+                  validator: (value) => value == null || value.isEmpty ? 'Vui lòng nhập email' : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _phoneController,
                   decoration: const InputDecoration(
-                    labelText: 'Phone Number',
+                    labelText: 'Số điện thoại',
                     prefixIcon: Icon(Icons.phone),
                     border: OutlineInputBorder(),
                   ),
-                  validator: (value) => value!.isEmpty ? 'Please enter phone' : null,
+                  validator: (value) => value == null || value.isEmpty ? 'Vui lòng nhập số điện thoại' : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: true,
                   decoration: const InputDecoration(
-                    labelText: 'Password',
+                    labelText: 'Mật khẩu',
                     prefixIcon: Icon(Icons.lock),
                     border: OutlineInputBorder(),
                   ),
-                  validator: (value) => value!.length < 6 ? 'Password must be at least 6 characters' : null,
+                  validator: (value) => value == null || value.length < 6 ? 'Mật khẩu phải có ít nhất 6 ký tự' : null,
                 ),
                 const SizedBox(height: 24),
                 if (authProvider.state == AuthState.error)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
                     child: Text(
-                      authProvider.errorMessage ?? 'An error occurred',
+                      authProvider.errorMessage ?? 'Đã xảy ra lỗi khi đăng ký. Vui lòng thử lại.',
                       style: const TextStyle(color: AppColors.error),
                       textAlign: TextAlign.center,
                     ),

@@ -75,12 +75,11 @@ class AssistantProvider extends ChangeNotifier {
       _state = AssistantState.ready;
     } catch (_) {
       _lastFailedMessage = message;
-      final errorText = locale.startsWith('en')
-          ? 'The movie assistant is temporarily busy or overloaded. Please try again in a moment.'
-          : 'Trợ lý phim hiện đang quá tải hoặc kết nối bị gián đoạn. Bạn vui lòng thử lại sau giây lát nhé.';
+      const errorText =
+          'Trợ lý phim hiện đang quá tải hoặc kết nối bị gián đoạn. Bạn vui lòng thử lại sau giây lát nhé.';
       _errorMessage = errorText;
       _messages.add(
-        AssistantChatMessage(
+        const AssistantChatMessage(
           role: 'assistant',
           content: errorText,
         ),

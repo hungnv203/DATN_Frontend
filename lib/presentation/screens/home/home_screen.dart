@@ -42,9 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 MaterialPageRoute(builder: (_) => const AssistantScreen()),
               ),
               icon: const Icon(Icons.smart_toy_outlined),
-              label: Text(Localizations.localeOf(context).languageCode == 'en'
-                  ? 'Ask Assistant'
-                  : 'Trợ lý AI'),
+              label: const Text('Trợ lý AI'),
             )
           : null,
       body: SafeArea(

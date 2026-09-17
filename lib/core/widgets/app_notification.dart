@@ -37,7 +37,7 @@ abstract final class AppNotification {
                 child: Material(
                   color: style.backgroundColor,
                   elevation: 10,
-                  shadowColor: Colors.black.withOpacity(0.35),
+                  shadowColor: Colors.black.withValues(alpha: 0.35),
                   borderRadius: BorderRadius.circular(14),
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
@@ -56,7 +56,7 @@ abstract final class AppNotification {
                           ),
                         ),
                         IconButton(
-                          tooltip: 'Dismiss notification',
+                          tooltip: 'Đóng thông báo',
                           onPressed: _dismissCurrent,
                           color: style.foregroundColor,
                           icon: const Icon(Icons.close_rounded),

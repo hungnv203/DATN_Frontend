@@ -142,6 +142,6 @@ class DioClient {
         // Fallback to default behavior if parsing fails
       }
     }
-    return e.message ?? 'Unknown error';
+    return e.message ?? 'Lỗi không xác định. Vui lòng thử lại.';
   }
 }
