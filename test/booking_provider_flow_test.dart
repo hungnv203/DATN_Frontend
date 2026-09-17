@@ -136,6 +136,28 @@ void main() {
     expect(provider.seats.map((seat) => seat.id), ['N1']);
     provider.dispose();
   });
+
+  test('existing pending booking preserves paymentPending in loadReviewStage and delegates return', () async {
+    final repository = _FakeBookingRepository();
+    final provider = _provider(repository);
+    await provider.startFlow('showtime-1');
+    provider.toggleSeatSelection(repository.seats.first);
+    repository.holdCompleter.complete(repository.session());
+    await provider.confirmSeats();
+    await provider.loadReviewStage();
+
+    final created = await provider.createPendingBooking();
+    expect(created, isTrue);
+    expect(provider.phase, BookingFlowPhase.paymentPending);
+
+    await provider.loadReviewStage();
+    expect(provider.phase, BookingFlowPhase.paymentPending);
+
+    await provider.handlePaymentReturn({'vnp_ResponseCode': '00'});
+    expect(repository.lastPaymentReturnParameters, {'vnp_ResponseCode': '00'});
+
+    provider.dispose();
+  });
 }
 
 BookingProvider _provider(_FakeBookingRepository repository,
@@ -154,6 +176,7 @@ BookingProvider _provider(_FakeBookingRepository repository,
       GetBookingByIdUseCase(repository),
       CreatePaymentUrlUseCase(repository),
       realtime ?? _FakeRealtimeRepository(repository.seats),
+      handlePaymentReturn: HandlePaymentReturnUseCase(repository),
       tickerFactory: tickerFactory ?? (_, callback) => _FakeTimer(callback),
     );
 
@@ -237,6 +260,7 @@ class _FakeBookingRepository implements BookingRepository {
   int releaseHoldCalls = 0;
   List<String> lastHeldSeatIds = [];
   Object? ownedHoldError;
+  Map<String, String>? lastPaymentReturnParameters;
   final holdCompleter = Completer<SeatHoldSession>();
 
   SeatHoldSession session({bool expired = false}) => SeatHoldSession(
@@ -320,4 +344,8 @@ class _FakeBookingRepository implements BookingRepository {
   @override
   Future<String> createPaymentUrl(String bookingId) async =>
       'https://example.test';
+  @override
+  Future<void> handlePaymentReturn(Map<String, String> queryParameters) async {
+    lastPaymentReturnParameters = queryParameters;
+  }
 }

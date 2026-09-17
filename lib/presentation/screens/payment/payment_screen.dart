@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -29,7 +30,8 @@ class _PaymentScreenState extends State<PaymentScreen>
   String? _errorMessage;
   bool _externalPaymentOpened = false;
   bool _isCheckingPaymentStatus = false;
-  bool _isHandlingReturn = false;
+  bool _useWebView = false;
+  Timer? _pollTimer;
   WebViewController? _webViewController;
 
   @override
@@ -41,6 +43,7 @@ class _PaymentScreenState extends State<PaymentScreen>
 
   @override
   void dispose() {
+    _pollTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -50,6 +53,29 @@ class _PaymentScreenState extends State<PaymentScreen>
     if (state == AppLifecycleState.resumed && _externalPaymentOpened) {
       _checkPaymentStatus();
     }
+  }
+
+  void _startPollingTimer() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_isCheckingPaymentStatus) return;
+      final provider = context.read<BookingProvider>();
+      final booking = await provider.fetchBookingById(widget.bookingId);
+      if (!mounted) return;
+      if (booking?.status == 'Paid') {
+        timer.cancel();
+        Navigator.pop(context, 'Paid');
+      } else if (booking?.status == 'Failed' ||
+          booking?.status == 'Cancelled' ||
+          booking?.status == 'Expired') {
+        timer.cancel();
+        Navigator.pop(context, booking!.status);
+      }
+    });
   }
 
   Future<void> _loadBookingAndCreatePayment() async {
@@ -81,14 +107,51 @@ class _PaymentScreenState extends State<PaymentScreen>
       _isLoading = false;
     });
 
-    if (kIsWeb) {
-      await _openPaymentPage();
-    } else {
-      _initWebViewController(url);
+    // Mở trang thanh toán bằng Chrome Custom Tabs / trình duyệt ngoài (ổn định, không crash emulator)
+    await _openPaymentPage();
+    _startPollingTimer();
+  }
+
+  Future<void> _openPaymentPage() async {
+    final url = _paymentUrl;
+    if (url == null) return;
+    try {
+      final uri = Uri.parse(url);
+      bool opened = false;
+      try {
+        opened = await launchUrl(
+          uri,
+          mode: LaunchMode.inAppBrowserView,
+        );
+      } catch (_) {
+        opened = false;
+      }
+      if (!opened) {
+        opened = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+      }
+      _externalPaymentOpened = true;
+      _startPollingTimer();
+      if (!opened && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không thể mở trình duyệt thanh toán.')),
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không thể mở trình duyệt thanh toán.')),
+      );
     }
   }
 
   void _initWebViewController(String url) {
+    setState(() {
+      _useWebView = true;
+      _errorMessage = null;
+    });
     final controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
@@ -111,7 +174,8 @@ class _PaymentScreenState extends State<PaymentScreen>
             if (error.isForMainFrame ?? true) {
               setState(() {
                 _errorMessage =
-                    'Không thể tải trang thanh toán qua WebView: ${error.description}\n(Mã lỗi: ${error.errorCode})\n\nMột số máy ảo Android cũ có thể chưa hỗ trợ chứng chỉ SSL của VNPAY Sandbox. Bạn có thể mở trực tiếp bằng trình duyệt ngoài bên dưới để tiếp tục.';
+                    'Không thể tải trang thanh toán qua WebView: ${error.description}\n(Mã lỗi: ${error.errorCode})\n\nMột số máy ảo Android cũ có thể chưa hỗ trợ WebView renderer. Bạn có thể mở trực tiếp bằng trình duyệt ngoài.';
+                _useWebView = false;
               });
             }
           },
@@ -138,12 +202,14 @@ class _PaymentScreenState extends State<PaymentScreen>
   }
 
   Future<void> _handleReturnUrl(Uri uri) async {
-    if (_isHandlingReturn) return;
-    _isHandlingReturn = true;
-
-    final vnpResponseCode = uri.queryParameters['vnp_ResponseCode'];
+    _pollTimer?.cancel();
     final provider = context.read<BookingProvider>();
 
+    if (uri.queryParameters.isNotEmpty) {
+      await provider.handlePaymentReturn(uri.queryParameters);
+    }
+
+    final vnpResponseCode = uri.queryParameters['vnp_ResponseCode'];
     if (vnpResponseCode != null && vnpResponseCode != '00') {
       await provider.fetchBookingById(widget.bookingId);
       if (mounted) {
@@ -158,33 +224,13 @@ class _PaymentScreenState extends State<PaymentScreen>
     }
   }
 
-  Future<void> _openPaymentPage() async {
-    final url = _paymentUrl;
-    if (url == null) return;
-    try {
-      final opened = await launchUrl(
-        Uri.parse(url),
-        mode: LaunchMode.externalApplication,
-      );
-      _externalPaymentOpened = opened;
-      if (opened || !mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không thể mở trình duyệt thanh toán.')),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không thể mở trình duyệt thanh toán.')),
-      );
-    }
-  }
-
   Future<void> _checkPaymentStatus() async {
     if (_isCheckingPaymentStatus) return;
     setState(() => _isCheckingPaymentStatus = true);
 
     final provider = context.read<BookingProvider>();
-    final status = await provider.pollPaymentStatus(widget.bookingId);
+    final status =
+        await provider.pollPaymentStatus(widget.bookingId, maxAttempts: 3);
 
     if (!mounted) return;
     setState(() => _isCheckingPaymentStatus = false);
@@ -193,6 +239,7 @@ class _PaymentScreenState extends State<PaymentScreen>
         status == 'Failed' ||
         status == 'Cancelled' ||
         status == 'Expired') {
+      _pollTimer?.cancel();
       Navigator.pop(context, status);
       return;
     }
@@ -207,33 +254,50 @@ class _PaymentScreenState extends State<PaymentScreen>
     );
   }
 
+  Future<void> _onCloseTapped() async {
+    final provider = context.read<BookingProvider>();
+    final booking = await provider.fetchBookingById(widget.bookingId);
+    if (!mounted) return;
+    if (booking?.status == 'Paid') {
+      _pollTimer?.cancel();
+      Navigator.pop(context, 'Paid');
+      return;
+    }
+    _pollTimer?.cancel();
+    Navigator.pop(context, false);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Thanh toán VNPAY'),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.pop(context, false),
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (!didPop) _onCloseTapped();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Thanh toán VNPAY'),
+          leading: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: _onCloseTapped,
+          ),
+          actions: [
+            if (_paymentUrl != null)
+              IconButton(
+                tooltip: 'Mở bằng trình duyệt ngoài',
+                onPressed: _openPaymentPage,
+                icon: const Icon(Icons.open_in_browser_rounded),
+              ),
+          ],
         ),
-        actions: [
-          if (_paymentUrl != null)
-            IconButton(
-              tooltip: 'Mở bằng trình duyệt ngoài',
-              onPressed: _openPaymentPage,
-              icon: const Icon(Icons.open_in_browser_rounded),
-            ),
-        ],
+        body: _errorMessage != null
+            ? _buildFallback()
+            : _isLoading || _paymentUrl == null
+                ? const Center(child: CircularProgressIndicator())
+                : _useWebView && _webViewController != null && !kIsWeb
+                    ? WebViewWidget(controller: _webViewController!)
+                    : _buildPaymentWaiting(),
       ),
-      body: _errorMessage != null
-          ? _buildFallback()
-          : _isLoading || _paymentUrl == null
-              ? const Center(child: CircularProgressIndicator())
-              : kIsWeb
-                  ? _buildPaymentWaiting()
-                  : _webViewController == null
-                      ? const Center(child: CircularProgressIndicator())
-                      : WebViewWidget(controller: _webViewController!),
     );
   }
 
@@ -247,7 +311,8 @@ class _PaymentScreenState extends State<PaymentScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.error_outline_rounded, size: 48, color: Colors.amber),
+                const Icon(Icons.error_outline_rounded,
+                    size: 48, color: Colors.amber),
                 const SizedBox(height: 16),
                 Text(_errorMessage!, textAlign: TextAlign.center),
                 const SizedBox(height: 24),
@@ -259,17 +324,6 @@ class _PaymentScreenState extends State<PaymentScreen>
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _errorMessage = null;
-                      });
-                      _initWebViewController(_paymentUrl!);
-                    },
-                    icon: const Icon(Icons.refresh_rounded),
-                    label: const Text('Thử tải lại WebView'),
-                  ),
-                  const SizedBox(height: 12),
-                  TextButton.icon(
                     onPressed:
                         _isCheckingPaymentStatus ? null : _checkPaymentStatus,
                     icon: const Icon(Icons.sync_rounded),
@@ -291,35 +345,92 @@ class _PaymentScreenState extends State<PaymentScreen>
   Widget _buildPaymentWaiting() {
     return SafeArea(
       child: Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.verified_user_outlined, size: 56),
-              const SizedBox(height: 16),
-              const Text(
-                'Trang VNPAY được mở trong cửa sổ thanh toán an toàn của trình duyệt.',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: _openPaymentPage,
-                icon: const Icon(Icons.open_in_browser_rounded),
-                label: const Text('Mở lại trang thanh toán'),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed:
-                    _isCheckingPaymentStatus ? null : _checkPaymentStatus,
-                icon: const Icon(Icons.refresh_rounded),
-                label: Text(
-                  _isCheckingPaymentStatus
-                      ? 'Đang kiểm tra...'
-                      : 'Kiểm tra trạng thái thanh toán',
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.verified_user_outlined,
+                      size: 64, color: Colors.greenAccent),
                 ),
-              ),
-            ],
+                const SizedBox(height: 20),
+                const Text(
+                  'Cổng thanh toán bảo mật VNPAY',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Trang thanh toán đã được mở trong trình duyệt bảo mật. Vui lòng hoàn tất giao dịch trên VNPAY.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white70, height: 1.4),
+                ),
+                const SizedBox(height: 24),
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    SizedBox(width: 12),
+                    Text(
+                      'Đang tự động đồng bộ kết quả...',
+                      style: TextStyle(fontSize: 13, color: Colors.white60),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: FilledButton.icon(
+                    onPressed: _openPaymentPage,
+                    icon: const Icon(Icons.open_in_browser_rounded),
+                    label: const Text('Mở lại trang thanh toán'),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    onPressed:
+                        _isCheckingPaymentStatus ? null : _checkPaymentStatus,
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: Text(
+                      _isCheckingPaymentStatus
+                          ? 'Đang kiểm tra...'
+                          : 'Kiểm tra trạng thái thanh toán',
+                    ),
+                  ),
+                ),
+                if (!kIsWeb) ...[
+                  const SizedBox(height: 16),
+                  TextButton.icon(
+                    onPressed: () {
+                      if (_paymentUrl != null) {
+                        _initWebViewController(_paymentUrl!);
+                      }
+                    },
+                    icon: const Icon(Icons.web, size: 18),
+                    label: const Text(
+                      'Thử mở bằng WebView trong ứng dụng',
+                      style: TextStyle(fontSize: 13, color: Colors.white54),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),

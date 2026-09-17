@@ -26,7 +26,7 @@ class ApiConstants {
   // Payments
   static const String payments = 'payments';
   static const String paymentResultUrl =
-      'https://datn-iuj8.onrender.com/payment-result';
+      'http://192.168.0.102:5275/payment-result';
 
   // Assistant
   static const String assistantAvailability = 'assistant/availability';

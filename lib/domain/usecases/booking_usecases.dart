@@ -97,6 +97,16 @@ class CreatePaymentUrlUseCase {
   }
 }
 
+class HandlePaymentReturnUseCase {
+  HandlePaymentReturnUseCase(this._repository);
+
+  final BookingRepository _repository;
+
+  Future<void> call(Map<String, String> queryParameters) {
+    return _repository.handlePaymentReturn(queryParameters);
+  }
+}
+
 class QuoteBookingUseCase {
   final BookingRepository _repository;
 

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../../domain/entities/assistant_response.dart';
 import '../../providers/assistant_provider.dart';
+import '../cinema/cinema_selection_screen.dart';
 
 class AssistantScreen extends StatefulWidget {
   const AssistantScreen({super.key});
@@ -186,50 +188,131 @@ class _MovieResultCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       label: '${movie.title}, ${movie.duration} phút, ${movie.rating}',
+      button: true,
       child: Padding(
         padding: const EdgeInsets.only(top: 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: SizedBox(
-                width: 72,
-                height: 104,
-                child: movie.posterUrl.isEmpty
-                    ? const ColoredBox(
-                        color: Colors.black26,
-                        child: Icon(Icons.movie_outlined),
-                      )
-                    : Image.network(
-                        movie.posterUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined),
-                      ),
-              ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => CinemaSelectionScreen(movieId: movie.id),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(movie.title, style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 4),
-                  Text('${movie.duration} phút • ${movie.rating}'),
-                  if (movie.genres.isNotEmpty) Text(movie.genres.join(' • ')),
-                  if (movie.reason.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(movie.reason, style: Theme.of(context).textTheme.bodySmall),
-                  ],
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: SizedBox(
+                      width: 72,
+                      height: 104,
+                      child: movie.posterUrl.isEmpty
+                          ? const ColoredBox(
+                              color: Colors.black26,
+                              child: Icon(Icons.movie_outlined),
+                            )
+                          : Image.network(
+                              movie.posterUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(movie.title, style: Theme.of(context).textTheme.titleMedium),
+                            ),
+                            const Icon(Icons.chevron_right, size: 18),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text('${movie.duration} phút • ${movie.rating}'),
+                        if (movie.genres.isNotEmpty) Text(movie.genres.join(' • ')),
+                        if (movie.reason.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text(movie.reason, style: Theme.of(context).textTheme.bodySmall),
+                        ],
+                      ],
+                    ),
+                  ),
                 ],
               ),
-            ),
-          ],
+              if (movie.upcomingShowtimes.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _ShowtimeChips(showtimes: movie.upcomingShowtimes),
+              ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
+class _ShowtimeChips extends StatelessWidget {
+  const _ShowtimeChips({required this.showtimes});
+
+  final List<AssistantShowtimeSummary> showtimes;
+
+  @override
+  Widget build(BuildContext context) {
+    final timeFmt = DateFormat('HH:mm');
+    final dateFmt = DateFormat('dd/MM');
+    final priceFmt = NumberFormat.compact(locale: 'vi');
+    // Group by cinema
+    final Map<String, List<AssistantShowtimeSummary>> byCinema = {};
+    for (final s in showtimes) {
+      byCinema.putIfAbsent(s.cinemaName, () => []).add(s);
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: byCinema.entries.map((entry) {
+        final cinemaName = entry.key;
+        final times = entry.value;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                cinemaName,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: times.map((s) {
+                  final label = '${dateFmt.format(s.startTime.toLocal())} ${timeFmt.format(s.startTime.toLocal())} • ${priceFmt.format(s.basePrice)}đ';
+                  return Chip(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    labelPadding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                    label: Text(label, style: Theme.of(context).textTheme.labelSmall),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
 
 class _AssistantInput extends StatelessWidget {
   const _AssistantInput({

@@ -88,6 +88,7 @@ void main() async {
   final getLoyaltyWalletUseCase = GetLoyaltyWalletUseCase(bookingRepository);
   final getBookingByIdUseCase = GetBookingByIdUseCase(bookingRepository);
   final createPaymentUrlUseCase = CreatePaymentUrlUseCase(bookingRepository);
+  final handlePaymentReturnUseCase = HandlePaymentReturnUseCase(bookingRepository);
   final seatRealtimeRepository = SeatRealtimeRepositoryImpl(dioClient, prefs);
 
   // Ticket Dependencies
@@ -152,6 +153,7 @@ void main() async {
             getBookingByIdUseCase,
             createPaymentUrlUseCase,
             seatRealtimeRepository,
+            handlePaymentReturn: handlePaymentReturnUseCase,
           ),
         ),
         ChangeNotifierProvider(

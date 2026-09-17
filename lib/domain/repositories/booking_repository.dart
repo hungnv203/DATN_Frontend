@@ -8,6 +8,7 @@ import '../entities/seat_hold_session.dart';
 abstract class BookingRepository {
   Future<Booking> getBookingById(String id);
   Future<String> createPaymentUrl(String bookingId);
+  Future<void> handlePaymentReturn(Map<String, String> queryParameters);
   Future<List<Seat>> getSeats(String showtimeId);
   Future<SeatHoldSession> createSeatHold(
       String showtimeId, List<String> seatIds);

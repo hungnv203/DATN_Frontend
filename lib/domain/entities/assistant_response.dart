@@ -1,3 +1,23 @@
+class AssistantShowtimeSummary {
+  const AssistantShowtimeSummary({
+    required this.showtimeId,
+    required this.cinemaName,
+    required this.roomName,
+    required this.roomType,
+    required this.startTime,
+    required this.endTime,
+    required this.basePrice,
+  });
+
+  final String showtimeId;
+  final String cinemaName;
+  final String roomName;
+  final String roomType;
+  final DateTime startTime;
+  final DateTime endTime;
+  final double basePrice;
+}
+
 class AssistantMovieCard {
   const AssistantMovieCard({
     required this.id,
@@ -11,6 +31,7 @@ class AssistantMovieCard {
     required this.status,
     required this.genres,
     required this.reason,
+    this.upcomingShowtimes = const [],
   });
 
   final String id;
@@ -24,6 +45,7 @@ class AssistantMovieCard {
   final String status;
   final List<String> genres;
   final String reason;
+  final List<AssistantShowtimeSummary> upcomingShowtimes;
 }
 
 class AssistantResponse {

@@ -23,6 +23,11 @@ class BookingRepositoryImpl implements BookingRepository {
   }
 
   @override
+  Future<void> handlePaymentReturn(Map<String, String> queryParameters) {
+    return remoteDataSource.handlePaymentReturn(queryParameters);
+  }
+
+  @override
   Future<List<Seat>> getSeats(String showtimeId) async {
     return await remoteDataSource.getSeats(showtimeId);
   }

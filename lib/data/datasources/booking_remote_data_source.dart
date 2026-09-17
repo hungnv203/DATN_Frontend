@@ -12,6 +12,7 @@ import '../../core/error/seat_hold_exceptions.dart';
 abstract class BookingRemoteDataSource {
   Future<BookingModel> getBookingById(String id);
   Future<String> createPaymentUrl(String bookingId);
+  Future<void> handlePaymentReturn(Map<String, String> queryParameters);
   Future<List<SeatModel>> getSeats(String showtimeId);
   Future<SeatHoldSessionModel> createSeatHold(
       String showtimeId, List<String> seatIds);
@@ -73,6 +74,23 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
       return url;
     } on DioException catch (error) {
       throw ServerException(error.message ?? 'Unknown error');
+    }
+  }
+
+  @override
+  Future<void> handlePaymentReturn(Map<String, String> queryParameters) async {
+    try {
+      await client.get(
+        '${ApiConstants.payments}/vnpay-return',
+        queryParameters: queryParameters,
+        options: Options(
+          responseType: ResponseType.plain,
+          headers: {'Accept': 'application/json, text/html, */*'},
+        ),
+      );
+    } catch (_) {
+      // Best-effort callback: server may have already processed or returns non-200,
+      // subsequent booking status checks will verify the source of truth.
     }
   }
 

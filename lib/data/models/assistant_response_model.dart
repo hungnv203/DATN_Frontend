@@ -41,10 +41,12 @@ class AssistantMovieCardModel extends AssistantMovieCard {
     required super.status,
     required super.genres,
     required super.reason,
+    super.upcomingShowtimes,
   });
 
   factory AssistantMovieCardModel.fromJson(Map<String, dynamic> json) {
     final genresJson = json['genres'] as List<dynamic>? ?? const [];
+    final showtimesJson = json['upcomingShowtimes'] as List<dynamic>? ?? const [];
     return AssistantMovieCardModel(
       id: json['id'] as String? ?? '',
       title: json['title'] as String? ?? '',
@@ -57,6 +59,33 @@ class AssistantMovieCardModel extends AssistantMovieCard {
       status: json['status'] as String? ?? '',
       genres: genresJson.map((item) => item.toString()).toList(),
       reason: json['reason'] as String? ?? '',
+      upcomingShowtimes: showtimesJson
+          .map((item) => AssistantShowtimeSummaryModel.fromJson(item as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
+
+class AssistantShowtimeSummaryModel extends AssistantShowtimeSummary {
+  const AssistantShowtimeSummaryModel({
+    required super.showtimeId,
+    required super.cinemaName,
+    required super.roomName,
+    required super.roomType,
+    required super.startTime,
+    required super.endTime,
+    required super.basePrice,
+  });
+
+  factory AssistantShowtimeSummaryModel.fromJson(Map<String, dynamic> json) {
+    return AssistantShowtimeSummaryModel(
+      showtimeId: json['showtimeId'] as String? ?? '',
+      cinemaName: json['cinemaName'] as String? ?? '',
+      roomName: json['roomName'] as String? ?? '',
+      roomType: json['roomType'] as String? ?? '',
+      startTime: DateTime.tryParse(json['startTime'] as String? ?? '') ?? DateTime(1970),
+      endTime: DateTime.tryParse(json['endTime'] as String? ?? '') ?? DateTime(1970),
+      basePrice: (json['basePrice'] as num?)?.toDouble() ?? 0.0,
     );
   }
 }

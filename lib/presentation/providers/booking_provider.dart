@@ -57,9 +57,11 @@ class BookingProvider extends ChangeNotifier {
     this._getBookingById,
     this._createPaymentUrl,
     this._realtimeRepository, {
+    HandlePaymentReturnUseCase? handlePaymentReturn,
     BookingFlowClock? clock,
     BookingFlowTickerFactory? tickerFactory,
-  })  : _clock = clock ?? SystemBookingFlowClock(),
+  })  : _handlePaymentReturn = handlePaymentReturn,
+        _clock = clock ?? SystemBookingFlowClock(),
         _tickerFactory = tickerFactory ?? Timer.periodic;
 
   final GetSeatsUseCase _getSeats;
@@ -73,6 +75,7 @@ class BookingProvider extends ChangeNotifier {
   final GetLoyaltyWalletUseCase _getLoyaltyWallet;
   final GetBookingByIdUseCase _getBookingById;
   final CreatePaymentUrlUseCase _createPaymentUrl;
+  final HandlePaymentReturnUseCase? _handlePaymentReturn;
   final SeatRealtimeRepository _realtimeRepository;
   final BookingFlowClock _clock;
   final BookingFlowTickerFactory _tickerFactory;
@@ -198,7 +201,9 @@ class BookingProvider extends ChangeNotifier {
     }
     phase = holdSession == null
         ? BookingFlowPhase.selectingSeats
-        : BookingFlowPhase.reviewing;
+        : (currentBooking != null && currentBooking!.status == 'Pending')
+            ? BookingFlowPhase.paymentPending
+            : BookingFlowPhase.reviewing;
     await quoteCurrentSelection(immediate: true);
     if (!_isCurrentFlow(generation, id)) return;
     notifyListeners();
@@ -405,6 +410,13 @@ class BookingProvider extends ChangeNotifier {
   Future<bool> createPendingBooking() async {
     final id = showtimeId;
     final session = holdSession;
+    if (currentBooking != null &&
+        currentBooking!.status == 'Pending' &&
+        currentBooking!.showtimeId == id) {
+      phase = BookingFlowPhase.paymentPending;
+      notifyListeners();
+      return true;
+    }
     if (!canConfirmBooking || id == null || session == null) return false;
     phase = BookingFlowPhase.creatingBooking;
     notifyListeners();
@@ -485,6 +497,17 @@ class BookingProvider extends ChangeNotifier {
       errorMessage = BookingFlowErrorKeys.requestFailed;
       notifyListeners();
       return null;
+    }
+  }
+
+  Future<void> handlePaymentReturn(Map<String, String> queryParameters) async {
+    final useCase = _handlePaymentReturn;
+    if (useCase != null) {
+      try {
+        await useCase(queryParameters);
+      } catch (_) {
+        // Best effort: booking status polling will determine the actual state.
+      }
     }
   }
 
