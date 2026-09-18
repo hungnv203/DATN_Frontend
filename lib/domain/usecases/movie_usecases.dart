@@ -1,5 +1,6 @@
 import '../entities/movie.dart';
 import '../entities/movie_discovery.dart';
+import '../entities/genre.dart';
 import '../repositories/movie_repository.dart';
 
 class GetNowPlayingMoviesUseCase {
@@ -7,8 +8,8 @@ class GetNowPlayingMoviesUseCase {
 
   GetNowPlayingMoviesUseCase(this._repository);
 
-  Future<List<Movie>> call() {
-    return _repository.getNowPlayingMovies();
+  Future<List<Movie>> call({String? genreId}) {
+    return _repository.getNowPlayingMovies(genreId: genreId);
   }
 }
 
@@ -17,8 +18,18 @@ class GetUpcomingMoviesUseCase {
 
   GetUpcomingMoviesUseCase(this._repository);
 
-  Future<List<Movie>> call() {
-    return _repository.getUpcomingMovies();
+  Future<List<Movie>> call({String? genreId}) {
+    return _repository.getUpcomingMovies(genreId: genreId);
+  }
+}
+
+class GetGenresUseCase {
+  final MovieRepository _repository;
+
+  GetGenresUseCase(this._repository);
+
+  Future<List<Genre>> call() {
+    return _repository.getGenres();
   }
 }
 

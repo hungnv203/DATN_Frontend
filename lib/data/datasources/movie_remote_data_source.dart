@@ -4,12 +4,14 @@ import '../../core/error/exceptions.dart';
 import '../../core/network/dio_client.dart';
 import '../models/movie_model.dart';
 import '../models/movie_discovery_model.dart';
+import '../models/genre_model.dart';
 
 abstract class MovieRemoteDataSource {
-  Future<List<MovieModel>> getNowPlayingMovies();
-  Future<List<MovieModel>> getUpcomingMovies();
+  Future<List<MovieModel>> getNowPlayingMovies({String? genreId});
+  Future<List<MovieModel>> getUpcomingMovies({String? genreId});
   Future<MovieModel> getMovieDetails(String id);
   Future<MovieDiscoveryModel> getDiscovery();
+  Future<List<GenreModel>> getGenres();
 }
 
 class MovieRemoteDataSourceImpl implements MovieRemoteDataSource {
@@ -31,9 +33,10 @@ class MovieRemoteDataSourceImpl implements MovieRemoteDataSource {
   }
 
   @override
-  Future<List<MovieModel>> getNowPlayingMovies() async {
+  Future<List<MovieModel>> getNowPlayingMovies({String? genreId}) async {
     try {
-      final response = await client.get(ApiConstants.movies);
+      final queryParams = genreId != null ? {'genreId': genreId} : null;
+      final response = await client.get(ApiConstants.movies, queryParameters: queryParams);
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
         final movies = data.map((json) => MovieModel.fromJson(json)).toList();
@@ -58,9 +61,10 @@ class MovieRemoteDataSourceImpl implements MovieRemoteDataSource {
   }
 
   @override
-  Future<List<MovieModel>> getUpcomingMovies() async {
+  Future<List<MovieModel>> getUpcomingMovies({String? genreId}) async {
     try {
-      final response = await client.get(ApiConstants.movies);
+      final queryParams = genreId != null ? {'genreId': genreId} : null;
+      final response = await client.get(ApiConstants.movies, queryParameters: queryParams);
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
         final movies = data.map((json) => MovieModel.fromJson(json)).toList();
@@ -78,6 +82,20 @@ class MovieRemoteDataSourceImpl implements MovieRemoteDataSource {
       } else {
         throw ServerException('Failed to load upcoming movies');
       }
+    } on DioException catch (e) {
+      throw ServerException(e.message ?? 'Unknown error');
+    }
+  }
+
+  @override
+  Future<List<GenreModel>> getGenres() async {
+    try {
+      final response = await client.get(ApiConstants.genres);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data;
+        return data.map((json) => GenreModel.fromJson(json)).toList();
+      }
+      throw ServerException('Failed to load genres');
     } on DioException catch (e) {
       throw ServerException(e.message ?? 'Unknown error');
     }

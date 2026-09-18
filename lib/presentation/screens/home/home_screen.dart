@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../domain/entities/movie.dart';
 import '../../../domain/entities/movie_discovery.dart';
+import '../../../domain/entities/genre.dart';
 import '../../providers/movie_provider.dart';
 import '../movie/movie_detail_screen.dart';
 import '../profile/profile_screen.dart';
@@ -67,6 +68,7 @@ class _MovieDiscoverView extends StatelessWidget {
     final nowPlaying = context.select<MovieProvider, List<Movie>>((value) => value.nowPlayingMovies);
     final upcoming = context.select<MovieProvider, List<Movie>>((value) => value.upcomingMovies);
     final discovery = context.select<MovieProvider, MovieDiscovery?>((value) => value.discovery);
+    final selectedGenreId = context.select<MovieProvider, String?>((value) => value.selectedGenreId);
 
     return CustomScrollView(
       slivers: [
@@ -100,36 +102,158 @@ class _MovieDiscoverView extends StatelessWidget {
             subtitle: 'Được yêu thích dựa trên lượt xem và vé bán',
             movies: discovery.featured,
           ),
-        if (discovery != null && discovery.trending.isNotEmpty)
-          _MovieSection(
-            title: '🔥 Đang hot',
-            subtitle: 'Có lượt đặt vé cao nhất trong 7 ngày qua',
-            movies: discovery.trending,
-          ),
-        if (discovery != null && discovery.bestSelling.isNotEmpty)
-          _MovieSection(
-            title: '💰 Bán chạy',
-            subtitle: 'Những bộ phim bán được nhiều vé nhất',
-            movies: discovery.bestSelling,
-          ),
-        if (discovery != null && discovery.newReleases.isNotEmpty)
-          _MovieSection(
-            title: '🆕 Phim mới',
-            subtitle: 'Khởi chiếu trong 14 ngày gần đây',
-            movies: discovery.newReleases,
-          ),
-        _MovieSection(
-          title: '🎟️ Đang chiếu',
-          subtitle: 'Các bộ phim hiện có lịch chiếu tại rạp',
-          movies: nowPlaying,
+        const SliverToBoxAdapter(
+          child: _GenreFilterBar(),
         ),
-        _MovieSection(
-          title: '⏳ Sắp chiếu',
-          subtitle: 'Lên lịch cho buổi xem tiếp theo',
-          movies: discovery?.upcoming ?? upcoming,
-        ),
+        if (selectedGenreId != null) ...[
+          _MovieSection(
+            title: '🎯 Phim đang chiếu',
+            subtitle: 'Phim thuộc thể loại đã chọn',
+            movies: nowPlaying,
+          ),
+          _MovieSection(
+            title: '⏳ Phim sắp chiếu',
+            subtitle: 'Phim sắp khởi chiếu thuộc thể loại này',
+            movies: upcoming,
+          ),
+        ] else ...[
+          if (discovery != null && discovery.trending.isNotEmpty)
+            _MovieSection(
+              title: '🔥 Đang hot',
+              subtitle: 'Có lượt đặt vé cao nhất trong 7 ngày qua',
+              movies: discovery.trending,
+            ),
+          if (discovery != null && discovery.bestSelling.isNotEmpty)
+            _MovieSection(
+              title: '💰 Bán chạy',
+              subtitle: 'Những bộ phim bán được nhiều vé nhất',
+              movies: discovery.bestSelling,
+            ),
+          if (discovery != null && discovery.newReleases.isNotEmpty)
+            _MovieSection(
+              title: '🆕 Phim mới',
+              subtitle: 'Khởi chiếu trong 14 ngày gần đây',
+              movies: discovery.newReleases,
+            ),
+          _MovieSection(
+            title: '🎟️ Đang chiếu',
+            subtitle: 'Các bộ phim hiện có lịch chiếu tại rạp',
+            movies: nowPlaying,
+          ),
+          _MovieSection(
+            title: '⏳ Sắp chiếu',
+            subtitle: 'Lên lịch cho buổi xem tiếp theo',
+            movies: discovery?.upcoming ?? upcoming,
+          ),
+        ],
         const SliverToBoxAdapter(child: SizedBox(height: 28)),
       ],
+    );
+  }
+}
+
+class _GenreFilterBar extends StatelessWidget {
+  const _GenreFilterBar();
+
+  @override
+  Widget build(BuildContext context) {
+    final genres = context.select<MovieProvider, List<Genre>>((value) => value.genres);
+    final selectedId = context.select<MovieProvider, String?>((value) => value.selectedGenreId);
+
+    if (genres.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.category_outlined, size: 18, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Text(
+                'Thể loại phim',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
+              ),
+              if (selectedId != null) ...[
+                const Spacer(),
+                GestureDetector(
+                  onTap: () => context.read<MovieProvider>().filterByGenre(null),
+                  child: const Text(
+                    'Đặt lại',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 38,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                _GenreChip(
+                  label: 'Tất cả',
+                  isSelected: selectedId == null,
+                  onTap: () => context.read<MovieProvider>().filterByGenre(null),
+                ),
+                ...genres.map((g) => Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: _GenreChip(
+                        label: g.name,
+                        isSelected: selectedId == g.id,
+                        onTap: () => context.read<MovieProvider>().filterByGenre(g.id),
+                      ),
+                    )),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GenreChip extends StatelessWidget {
+  const _GenreChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      showCheckmark: false,
+      onSelected: (_) => onTap(),
+      backgroundColor: AppColors.surfaceHigh,
+      selectedColor: AppColors.primary,
+      labelStyle: TextStyle(
+        fontSize: 13,
+        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+        color: isSelected ? Colors.white : AppColors.textSecondary,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: isSelected ? AppColors.primary : Colors.transparent,
+        ),
+      ),
     );
   }
 }
@@ -230,6 +354,23 @@ class _MovieCard extends StatelessWidget {
                           const Icon(Icons.schedule_rounded, size: 15, color: AppColors.textSecondary),
                           const SizedBox(width: 5),
                           Text('${movie.duration} phút', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary)),
+                          if (movie.genres.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(alpha: 0.14),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  movie.genres.first,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 10, color: AppColors.primary, fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ],

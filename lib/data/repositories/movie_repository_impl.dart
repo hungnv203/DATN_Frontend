@@ -1,5 +1,6 @@
 import '../../domain/entities/movie.dart';
 import '../../domain/entities/movie_discovery.dart';
+import '../../domain/entities/genre.dart';
 import '../../domain/repositories/movie_repository.dart';
 import '../datasources/movie_remote_data_source.dart';
 
@@ -14,13 +15,18 @@ class MovieRepositoryImpl implements MovieRepository {
   }
 
   @override
-  Future<List<Movie>> getNowPlayingMovies() async {
-    return await remoteDataSource.getNowPlayingMovies();
+  Future<List<Movie>> getNowPlayingMovies({String? genreId}) async {
+    return await remoteDataSource.getNowPlayingMovies(genreId: genreId);
   }
 
   @override
-  Future<List<Movie>> getUpcomingMovies() async {
-    return await remoteDataSource.getUpcomingMovies();
+  Future<List<Movie>> getUpcomingMovies({String? genreId}) async {
+    return await remoteDataSource.getUpcomingMovies(genreId: genreId);
+  }
+
+  @override
+  Future<List<Genre>> getGenres() async {
+    return await remoteDataSource.getGenres();
   }
 
   @override

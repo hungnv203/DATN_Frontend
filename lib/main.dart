@@ -66,6 +66,7 @@ void main() async {
   final getUpcomingUseCase = GetUpcomingMoviesUseCase(movieRepository);
   final getMovieDiscoveryUseCase = GetMovieDiscoveryUseCase(movieRepository);
   final getMovieDetailsUseCase = GetMovieDetailsUseCase(movieRepository);
+  final getGenresUseCase = GetGenresUseCase(movieRepository);
 
   // Cinema Dependencies
   final cinemaRemoteDataSource = CinemaRemoteDataSourceImpl(dioClient);
@@ -130,6 +131,7 @@ void main() async {
             getUpcomingUseCase,
             getMovieDiscoveryUseCase,
             getMovieDetailsUseCase,
+            getGenresUseCase,
           ),
         ),
         ChangeNotifierProvider(

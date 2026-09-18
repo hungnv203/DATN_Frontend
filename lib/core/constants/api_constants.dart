@@ -6,8 +6,9 @@ class ApiConstants {
   static const String login = 'Auth/sign-in';
   static const String register = 'Auth/sign-up';
 
-  // Movies
+  // Movies & Genres
   static const String movies = 'movies';
+  static const String genres = 'genres';
 
   // Cinemas & Showtimes
   static const String cinemas = 'cinemas';

@@ -11,9 +11,15 @@ class MovieModel extends Movie {
     required super.rating,
     required super.posterUrl,
     required super.status,
+    super.genres = const [],
   });
 
   factory MovieModel.fromJson(Map<String, dynamic> json) {
+    final genresList = (json['genres'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        const [];
+
     return MovieModel(
       id: json['id'] ?? '',
       title: json['title'] ?? '',
@@ -24,6 +30,7 @@ class MovieModel extends Movie {
       rating: json['rating'] ?? '',
       posterUrl: json['posterUrl'] ?? '',
       status: json['status'] ?? '',
+      genres: genresList,
     );
   }
 
@@ -38,6 +45,7 @@ class MovieModel extends Movie {
       'rating': rating,
       'posterUrl': posterUrl,
       'status': status,
+      'genres': genres,
     };
   }
 }
