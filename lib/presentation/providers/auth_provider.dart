@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/utils/role_validator.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/usecases/login_usecase.dart';
 import '../../domain/usecases/logout_usecase.dart';
@@ -23,14 +24,23 @@ class AuthProvider extends ChangeNotifier {
       errorMessage = null;
       notifyListeners();
 
-      currentUser = await _loginUseCase(email, password);
-      
+      final user = await _loginUseCase(email, password);
+      if (!RoleValidator.isAllowedMobileCustomerRole(user.role)) {
+        await logout();
+        state = AuthState.error;
+        errorMessage = 'Tài khoản quản trị không thể đăng nhập trên ứng dụng khách hàng.';
+        notifyListeners();
+        return false;
+      }
+
+      currentUser = user;
       state = AuthState.success;
       notifyListeners();
       return true;
     } catch (e) {
+      await logout();
       state = AuthState.error;
-      errorMessage = e.toString();
+      errorMessage = e.toString().replaceAll('Exception: ', '');
       notifyListeners();
       return false;
     }

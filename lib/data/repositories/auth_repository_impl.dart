@@ -1,4 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/error/exceptions.dart';
+import '../../core/utils/role_validator.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_data_source.dart';
@@ -18,11 +20,16 @@ class AuthRepositoryImpl implements AuthRepository {
     final response = await remoteDataSource.login(email, password);
     final userModel = response['user'] as UserModel;
     final token = response['token'] as String?;
-    
+
+    if (!RoleValidator.isAllowedMobileCustomerRole(userModel.role)) {
+      await logout();
+      throw ServerException('Tài khoản quản trị không thể đăng nhập trên ứng dụng khách hàng.');
+    }
+
     if (token != null) {
       await prefs.setString('auth_token', token);
     }
-    
+
     return userModel;
   }
 
@@ -36,11 +43,16 @@ class AuthRepositoryImpl implements AuthRepository {
     final response = await remoteDataSource.register(email, password, fullName, phoneNumber);
     final userModel = response['user'] as UserModel;
     final token = response['token'] as String?;
-    
+
+    if (!RoleValidator.isAllowedMobileCustomerRole(userModel.role)) {
+      await logout();
+      throw ServerException('Tài khoản quản trị không thể đăng nhập trên ứng dụng khách hàng.');
+    }
+
     if (token != null) {
       await prefs.setString('auth_token', token);
     }
-    
+
     return userModel;
   }
 
@@ -52,12 +64,15 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<User?> getCurrentUser() async {
-    // Usually read from SharedPreferences
     final token = prefs.getString('auth_token');
     if (token != null) {
-      // Decode user from preferences or fetch from API
-      // Return UserModel
+      final role = RoleValidator.extractRoleFromJwt(token);
+      if (!RoleValidator.isAllowedMobileCustomerRole(role)) {
+        await logout();
+        return null;
+      }
     }
     return null;
   }
 }
+

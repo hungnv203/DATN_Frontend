@@ -5,6 +5,7 @@ class User {
   final String phoneNumber;
   final String? avatarUrl;
   final int loyaltyPoints;
+  final String? role;
 
   const User({
     required this.id,
@@ -13,5 +14,6 @@ class User {
     required this.phoneNumber,
     this.avatarUrl,
     required this.loyaltyPoints,
+    this.role,
   });
 }

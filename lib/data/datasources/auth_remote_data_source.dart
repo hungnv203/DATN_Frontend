@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/error/exceptions.dart';
 import '../../core/network/dio_client.dart';
+import '../../core/utils/role_validator.dart';
 import '../models/user_model.dart';
 
 abstract class AuthRemoteDataSource {
@@ -25,9 +26,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         },
       );
       if (response.statusCode == 200) {
+        final token = response.data['accessToken'] as String?;
+        final userRaw = response.data['user'] as Map<String, dynamic>? ?? {};
+        final tokenRole = RoleValidator.extractRoleFromJwt(token);
         return {
-          'user': UserModel.fromJson(response.data['user']),
-          'token': response.data['accessToken'],
+          'user': UserModel.fromJson(userRaw, tokenRole),
+          'token': token,
         };
       } else {
         throw ServerException(response.data['message'] ?? 'Login failed');
@@ -50,9 +54,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         },
       );
       if (response.statusCode == 200 || response.statusCode == 201) {
+        final token = response.data['accessToken'] as String?;
+        final userRaw = response.data['user'] as Map<String, dynamic>? ?? {};
+        final tokenRole = RoleValidator.extractRoleFromJwt(token);
         return {
-          'user': UserModel.fromJson(response.data['user']),
-          'token': response.data['accessToken'],
+          'user': UserModel.fromJson(userRaw, tokenRole),
+          'token': token,
         };
       } else {
         throw ServerException(response.data['message'] ?? 'Registration failed');
@@ -62,3 +69,4 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     }
   }
 }
+
