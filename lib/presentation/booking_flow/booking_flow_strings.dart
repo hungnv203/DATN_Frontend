@@ -6,6 +6,11 @@ class BookingFlowErrorKeys {
   static const holdExpired = 'hold_expired';
   static const seatUnavailable = 'seat_unavailable';
   static const requestFailed = 'request_failed';
+  static const showtimeNotBookable = 'showtime_not_bookable';
+  static const holdSeatLimitExceeded = 'hold_seat_limit_exceeded';
+  static const holdAlreadyBooked = 'hold_already_booked';
+  static const bookingAlreadyPending = 'booking_already_pending';
+  static const rateLimited = 'rate_limited';
 }
 
 class BookingFlowStrings {
@@ -58,6 +63,16 @@ class BookingFlowStrings {
       'Thời gian giữ ghế đã hết hạn. Vui lòng chọn lại ghế.';
   String get seatUnavailable =>
       'Một hoặc nhiều ghế bạn chọn vừa có người khác giữ. Vui lòng chọn ghế khác.';
+  String get showtimeNotBookable =>
+      'Suất chiếu này không còn khả dụng để đặt vé.';
+  String get holdSeatLimitExceeded =>
+      'Bạn chỉ được giữ tối đa 8 ghế trong một lượt.';
+  String get holdAlreadyBooked =>
+      'Lượt giữ ghế này đã được chuyển thành đặt vé.';
+  String get bookingAlreadyPending =>
+      'Bạn đã có đặt vé đang chờ xử lý cho suất chiếu này.';
+  String get rateLimited =>
+      'Bạn đã gửi quá nhiều yêu cầu. Vui lòng thử lại sau.';
 
   String error(String key) {
     switch (key) {
@@ -69,6 +84,16 @@ class BookingFlowStrings {
         return holdExpired;
       case BookingFlowErrorKeys.seatUnavailable:
         return seatUnavailable;
+      case BookingFlowErrorKeys.showtimeNotBookable:
+        return showtimeNotBookable;
+      case BookingFlowErrorKeys.holdSeatLimitExceeded:
+        return holdSeatLimitExceeded;
+      case BookingFlowErrorKeys.holdAlreadyBooked:
+        return holdAlreadyBooked;
+      case BookingFlowErrorKeys.bookingAlreadyPending:
+        return bookingAlreadyPending;
+      case BookingFlowErrorKeys.rateLimited:
+        return rateLimited;
       default:
         return requestFailed;
     }

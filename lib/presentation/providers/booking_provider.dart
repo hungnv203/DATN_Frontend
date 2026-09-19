@@ -259,6 +259,27 @@ class BookingProvider extends ChangeNotifier {
       await _installSnapshot(id);
       phase = BookingFlowPhase.selectingSeats;
       return false;
+    } on SeatHoldShowtimeNotBookable {
+      errorMessage = BookingFlowErrorKeys.showtimeNotBookable;
+      await _installSnapshot(id);
+      phase = BookingFlowPhase.selectingSeats;
+      return false;
+    } on SeatHoldLimitExceeded {
+      errorMessage = BookingFlowErrorKeys.holdSeatLimitExceeded;
+      phase = BookingFlowPhase.selectingSeats;
+      return false;
+    } on SeatHoldAlreadyBooked {
+      errorMessage = BookingFlowErrorKeys.holdAlreadyBooked;
+      phase = BookingFlowPhase.selectingSeats;
+      return false;
+    } on SeatHoldBookingAlreadyPending {
+      errorMessage = BookingFlowErrorKeys.bookingAlreadyPending;
+      phase = BookingFlowPhase.selectingSeats;
+      return false;
+    } on SeatHoldRateLimited {
+      errorMessage = BookingFlowErrorKeys.rateLimited;
+      phase = BookingFlowPhase.selectingSeats;
+      return false;
     } catch (_) {
       errorMessage = BookingFlowErrorKeys.requestFailed;
       phase = BookingFlowPhase.selectingSeats;
@@ -308,6 +329,7 @@ class BookingProvider extends ChangeNotifier {
     if (holdSession == null || commandInProgress) return false;
     final id = showtimeId;
     final session = holdSession!;
+    final previousPhase = phase;
     phase = BookingFlowPhase.cancelling;
     notifyListeners();
     try {
@@ -322,7 +344,7 @@ class BookingProvider extends ChangeNotifier {
       return true;
     } catch (_) {
       errorMessage = BookingFlowErrorKeys.requestFailed;
-      phase = BookingFlowPhase.selectingSeats;
+      phase = previousPhase;
       notifyListeners();
       return false;
     }
@@ -473,7 +495,8 @@ class BookingProvider extends ChangeNotifier {
   }
 
   Future<String?> pollPaymentStatus(String id,
-      {int maxAttempts = 5, Duration interval = const Duration(seconds: 1)}) async {
+      {int maxAttempts = 5,
+      Duration interval = const Duration(seconds: 1)}) async {
     for (var attempt = 0; attempt < maxAttempts; attempt++) {
       final booking = await fetchBookingById(id);
       final status = booking?.status;

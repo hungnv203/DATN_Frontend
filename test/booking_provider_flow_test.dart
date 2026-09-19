@@ -37,6 +37,31 @@ void main() {
     provider.dispose();
   });
 
+  final holdErrorCases = <Object, String>{
+    const SeatHoldShowtimeNotBookable('not bookable'):
+        BookingFlowErrorKeys.showtimeNotBookable,
+    const SeatHoldLimitExceeded('too many seats'):
+        BookingFlowErrorKeys.holdSeatLimitExceeded,
+    const SeatHoldAlreadyBooked('already booked'):
+        BookingFlowErrorKeys.holdAlreadyBooked,
+    const SeatHoldBookingAlreadyPending('pending'):
+        BookingFlowErrorKeys.bookingAlreadyPending,
+    const SeatHoldRateLimited('slow down'): BookingFlowErrorKeys.rateLimited,
+  };
+  for (final entry in holdErrorCases.entries) {
+    test('confirm maps ${entry.value} without leaking data-layer details',
+        () async {
+      final repository = _FakeBookingRepository()..createHoldError = entry.key;
+      final provider = _provider(repository);
+      await provider.startFlow('showtime-1');
+      provider.toggleSeatSelection(repository.seats.first);
+
+      expect(await provider.confirmSeats(), isFalse);
+      expect(provider.errorMessage, entry.value);
+      provider.dispose();
+    });
+  }
+
   test('expiry authentication failure cancels ticker and waits for retry',
       () async {
     final repository = _FakeBookingRepository()
@@ -73,6 +98,43 @@ void main() {
     expect(provider.phase, BookingFlowPhase.idle);
     expect(provider.holdSession, isNull);
     expect(repository.releaseHoldCalls, 1);
+    provider.dispose();
+  });
+
+  test('back from concessions releases the active hold before seat editing',
+      () async {
+    final repository = _FakeBookingRepository();
+    final provider = _provider(repository);
+    await provider.startFlow('showtime-1');
+    provider.toggleSeatSelection(repository.seats.first);
+    repository.holdCompleter.complete(repository.session());
+    expect(await provider.confirmSeats(), isTrue);
+    expect(provider.phase, BookingFlowPhase.selectingConcessions);
+
+    expect(await provider.releaseHeldSelection(), isTrue);
+
+    expect(repository.releaseHoldCalls, 1);
+    expect(provider.holdSession, isNull);
+    expect(provider.selectedSeats, isEmpty);
+    expect(provider.phase, BookingFlowPhase.selectingSeats);
+    provider.dispose();
+  });
+
+  test('failed back release keeps the user on concessions with the hold',
+      () async {
+    final repository = _FakeBookingRepository();
+    final provider = _provider(repository);
+    await provider.startFlow('showtime-1');
+    provider.toggleSeatSelection(repository.seats.first);
+    repository.holdCompleter.complete(repository.session());
+    expect(await provider.confirmSeats(), isTrue);
+    repository.releaseHoldError = Exception('network');
+
+    expect(await provider.releaseHeldSelection(), isFalse);
+
+    expect(provider.holdSession, isNotNull);
+    expect(provider.phase, BookingFlowPhase.selectingConcessions);
+    expect(provider.errorMessage, BookingFlowErrorKeys.requestFailed);
     provider.dispose();
   });
 
@@ -137,7 +199,9 @@ void main() {
     provider.dispose();
   });
 
-  test('existing pending booking preserves paymentPending in loadReviewStage and delegates return', () async {
+  test(
+      'existing pending booking preserves paymentPending in loadReviewStage and delegates return',
+      () async {
     final repository = _FakeBookingRepository();
     final provider = _provider(repository);
     await provider.startFlow('showtime-1');
@@ -260,6 +324,8 @@ class _FakeBookingRepository implements BookingRepository {
   int releaseHoldCalls = 0;
   List<String> lastHeldSeatIds = [];
   Object? ownedHoldError;
+  Object? createHoldError;
+  Object? releaseHoldError;
   Map<String, String>? lastPaymentReturnParameters;
   final holdCompleter = Completer<SeatHoldSession>();
 
@@ -279,6 +345,7 @@ class _FakeBookingRepository implements BookingRepository {
       String showtimeId, List<String> seatIds) {
     createHoldCalls++;
     lastHeldSeatIds = List<String>.from(seatIds);
+    if (createHoldError != null) return Future.error(createHoldError!);
     return holdCompleter.future;
   }
 
@@ -311,6 +378,7 @@ class _FakeBookingRepository implements BookingRepository {
   @override
   Future<void> releaseSeatHold(String holdGroupId) async {
     releaseHoldCalls++;
+    if (releaseHoldError != null) throw releaseHoldError!;
   }
 
   @override

@@ -14,11 +14,20 @@ class GetCinemasUseCase {
 
 class GetShowtimesUseCase {
   final CinemaRepository _repository;
+  final DateTime Function() _now;
 
-  GetShowtimesUseCase(this._repository);
+  GetShowtimesUseCase(
+    this._repository, {
+    DateTime Function()? now,
+  }) : _now = now ?? DateTime.now;
 
-  Future<List<Showtime>> call(String movieId, String date) {
-    return _repository.getShowtimes(movieId, date);
+  Future<List<Showtime>> call(String movieId, String date) async {
+    final showtimes = await _repository.getShowtimes(movieId, date);
+    final now = _now();
+
+    return showtimes
+        .where((showtime) => showtime.startTime.isAfter(now))
+        .toList(growable: false);
   }
 }
 

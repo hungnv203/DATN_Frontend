@@ -150,16 +150,29 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   }
 
   Never _throwHoldFailure(ServerException error) {
-    switch (error.statusCode) {
-      case 409:
-        throw SeatHoldConflict(error.message);
-      case 404:
-        throw SeatHoldUnavailable(error.message);
-      case 401:
-      case 403:
-        throw const SeatHoldAuthenticationRequired();
-      default:
-        throw SeatHoldTransportFailure(error.message);
+    final statusCode = error.statusCode;
+    final message = error.message;
+    final errorCode = error.errorCode;
+
+    if (statusCode == 409) {
+      if (errorCode == 'SHOWTIME_NOT_BOOKABLE') {
+        throw SeatHoldShowtimeNotBookable(message);
+      } else if (errorCode == 'HOLD_SEAT_LIMIT_EXCEEDED') {
+        throw SeatHoldLimitExceeded(message);
+      } else if (errorCode == 'HOLD_ALREADY_BOOKED') {
+        throw SeatHoldAlreadyBooked(message);
+      } else if (errorCode == 'BOOKING_ALREADY_PENDING') {
+        throw SeatHoldBookingAlreadyPending(message);
+      }
+      throw SeatHoldConflict(message, errorCode: errorCode);
+    } else if (statusCode == 404) {
+      throw SeatHoldUnavailable(message);
+    } else if (statusCode == 429) {
+      throw SeatHoldRateLimited(message);
+    } else if (statusCode == 401 || statusCode == 403) {
+      throw const SeatHoldAuthenticationRequired();
+    } else {
+      throw SeatHoldTransportFailure(message);
     }
   }
 

@@ -7,7 +7,7 @@ class DioClient {
   late final Dio _dio;
   final SharedPreferences _prefs;
 
-  DioClient(this._prefs) {
+  DioClient(SharedPreferences preferences) : _prefs = preferences {
     _dio = Dio(
       BaseOptions(
         baseUrl: ApiConstants.baseUrl,
@@ -51,7 +51,7 @@ class DioClient {
       );
       return response;
     } on DioException catch (e) {
-      throw ServerException(_handleDioError(e), e.response?.statusCode);
+      throw _toServerException(e);
     }
   }
 
@@ -70,7 +70,7 @@ class DioClient {
       );
       return response;
     } on DioException catch (e) {
-      throw ServerException(_handleDioError(e), e.response?.statusCode);
+      throw _toServerException(e);
     }
   }
 
@@ -89,7 +89,7 @@ class DioClient {
       );
       return response;
     } on DioException catch (e) {
-      throw ServerException(_handleDioError(e), e.response?.statusCode);
+      throw _toServerException(e);
     }
   }
 
@@ -108,8 +108,21 @@ class DioClient {
       );
       return response;
     } on DioException catch (e) {
-      throw ServerException(_handleDioError(e), e.response?.statusCode);
+      throw _toServerException(e);
     }
+  }
+
+  ServerException _toServerException(DioException error) => ServerException(
+        _handleDioError(error),
+        error.response?.statusCode,
+        _extractErrorCode(error),
+      );
+
+  String? _extractErrorCode(DioException error) {
+    final data = error.response?.data;
+    return data is Map && data['errorCode'] != null
+        ? data['errorCode'].toString()
+        : null;
   }
 
   String _handleDioError(DioException e) {
@@ -127,9 +140,9 @@ class DioClient {
               if (errors.isNotEmpty) {
                 final firstError = errors.values.first;
                 if (firstError is List && firstError.isNotEmpty) {
-                  msg += ": " + firstError.first.toString();
+                  msg += ': ${firstError.first}';
                 } else {
-                  msg += ": " + firstError.toString();
+                  msg += ': $firstError';
                 }
               }
             }
